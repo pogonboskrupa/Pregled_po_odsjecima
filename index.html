@@ -486,12 +486,12 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
         <thead><tr>
           <th style="width:20px"></th>
           <th onclick="sortSearch('gj')">Gospod. jedinica</th>
-          <th onclick="sortSearch('odjel')">Odjel</th>
+          <th onclick="sortSearch('odjel')" class="sorted">Odjel ↑</th>
           <th onclick="sortSearch('odsjek')">Odsjek</th>
           <th onclick="sortSearch('povrsina')" class="num">Površina (ha)</th>
           <th onclick="sortSearch('gazd_klasa')" class="num">Gazd. klasa</th>
           <th onclick="sortSearch('sklop')" class="num">Sklop (%)</th>
-          <th onclick="sortSearch('ukupno_m3ha')" class="num sorted">m³/ha ↓</th>
+          <th onclick="sortSearch('ukupno_m3ha')" class="num">m³/ha</th>
           <th onclick="sortSearch('ukupno_m3')" class="num">Ukupno (m³)</th>
           <th onclick="sortSearch('rel_greska')" class="num">Rel. greška (%)</th>
           <th>Zaliha</th>
@@ -740,7 +740,7 @@ function printView(){
 }
 
 // ── SEARCH ──
-let sData=[...ODSJECI],sSort={col:'ukupno_m3ha',dir:-1},sPage=0,expandedKey=null,min10=false;
+let sData=[...ODSJECI],sSort={col:'odjel',dir:1},sPage=0,expandedKey=null,min10=false;
 const PAGE=50;
 function gk(o){return o.gj+'_'+o.odjel+'_'+o.odsjek;}
 
@@ -769,12 +769,29 @@ function toggleMin10(){
   applyFilters();
 }
 function sortSearch(col){
-  if(sSort.col===col)sSort.dir*=-1;else{sSort.col=col;sSort.dir=-1;}
+  if(sSort.col===col)sSort.dir*=-1;else{sSort.col=col;sSort.dir=col==='odjel'?1:-1;}
+  updateSortHeaders();
   sPage=0;sortAndRender();
+}
+function updateSortHeaders(){
+  const labels={gj:'Gospod. jedinica',odjel:'Odjel',odsjek:'Odsjek',povrsina:'Površina (ha)',gazd_klasa:'Gazd. klasa',sklop:'Sklop (%)',ukupno_m3ha:'m³/ha',ukupno_m3:'Ukupno (m³)',rel_greska:'Rel. greška (%)'};
+  document.querySelectorAll('#search-table thead th[onclick]').forEach(th=>{
+    const m=th.getAttribute('onclick').match(/sortSearch\('([^']+)'\)/);
+    if(!m)return;
+    const c=m[1];
+    th.classList.toggle('sorted',c===sSort.col);
+    th.textContent=(labels[c]||c)+(c===sSort.col?(sSort.dir>0?' ↑':' ↓'):'');
+  });
 }
 function sortAndRender(){
   const{col,dir}=sSort;
-  sData.sort((a,b)=>typeof a[col]==='string'?dir*a[col].localeCompare(b[col]):dir*((a[col]||0)-(b[col]||0)));
+  sData.sort((a,b)=>{
+    const cmp=typeof a[col]==='string'?a[col].localeCompare(b[col]):(a[col]||0)-(b[col]||0);
+    if(cmp!==0)return dir*cmp;
+    const oa=parseInt(a.odjel)||0,ob=parseInt(b.odjel)||0;
+    if(oa!==ob)return oa-ob;
+    return a.odsjek-b.odsjek;
+  });
   renderSearch();
 }
 function renderSearch(){
@@ -1300,6 +1317,7 @@ if (window.innerWidth <= 768) {
 }
 
 // ── INIT ──
+updateSortHeaders();
 applyFilters();renderVrste();renderZaliha();sjInit();
 updateSjStorageInfo();
 restoreHash();
