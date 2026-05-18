@@ -485,8 +485,8 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
       <table id="search-table">
         <thead><tr>
           <th style="width:20px"></th>
-          <th onclick="sortSearch('gj')">Gospod. jedinica</th>
-          <th onclick="sortSearch('odjel')" class="sorted">Odjel ↑</th>
+          <th onclick="sortSearch('gj')" class="sorted">Gospod. jedinica ↑</th>
+          <th onclick="sortSearch('odjel')">Odjel</th>
           <th onclick="sortSearch('odsjek')">Odsjek</th>
           <th onclick="sortSearch('povrsina')" class="num">Površina (ha)</th>
           <th onclick="sortSearch('gazd_klasa')" class="num">Gazd. klasa</th>
@@ -740,7 +740,7 @@ function printView(){
 }
 
 // ── SEARCH ──
-let sData=[...ODSJECI],sSort={col:'odjel',dir:1},sPage=0,expandedKey=null,min10=false;
+let sData=[...ODSJECI],sSort={col:'gj',dir:1},sPage=0,expandedKey=null,min10=false;
 const PAGE=50;
 function gk(o){return o.gj+'_'+o.odjel+'_'+o.odsjek;}
 
@@ -769,7 +769,7 @@ function toggleMin10(){
   applyFilters();
 }
 function sortSearch(col){
-  if(sSort.col===col)sSort.dir*=-1;else{sSort.col=col;sSort.dir=col==='odjel'?1:-1;}
+  if(sSort.col===col)sSort.dir*=-1;else{sSort.col=col;sSort.dir=(col==='gj'||col==='odjel'||col==='odsjek')?1:-1;}
   updateSortHeaders();
   sPage=0;sortAndRender();
 }
