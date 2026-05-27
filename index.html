@@ -344,11 +344,30 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .plt-tab.active{background:var(--accent);color:#fff;}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
 .modal-note{font-size:0.72rem;color:var(--text-muted);margin-top:12px;padding:8px 10px;background:var(--surface2);border-radius:3px;border-left:3px solid var(--accent-mid);}
+#install-banner{position:fixed;bottom:0;left:0;right:0;background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:11px 18px;z-index:9000;box-shadow:0 -2px 8px rgba(0,0,0,0.25);transform:translateY(100%);transition:transform 0.35s ease;}
+#install-banner.show{transform:translateY(0);}
+#install-banner .ib-icon{font-size:1.3rem;flex-shrink:0;}
+#install-banner .ib-text{flex:1;font-size:0.82rem;font-weight:600;line-height:1.3;}
+#install-banner .ib-text small{display:block;font-weight:400;opacity:0.85;font-size:0.74rem;}
+#install-banner .ib-btn{background:#fff;color:var(--accent);border:none;border-radius:3px;padding:6px 14px;font-size:0.8rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+#install-banner .ib-btn:hover{background:var(--accent-pale);}
+#install-banner .ib-close{background:none;border:none;color:#fff;font-size:1.2rem;cursor:pointer;padding:2px 6px;opacity:0.75;flex-shrink:0;}
+#install-banner .ib-close:hover{opacity:1;}
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
+
+<!-- INSTALL BANNER -->
+<div id="install-banner">
+  <span class="ib-icon">📲</span>
+  <div class="ib-text">Instaliraj Elaborat kao aplikaciju
+    <small>Radi offline · brži pristup s početnog ekrana</small>
+  </div>
+  <button class="ib-btn" onclick="installBannerInstall()">Instaliraj</button>
+  <button class="ib-close" onclick="installBannerDismiss()" title="Zatvori">✕</button>
+</div>
 
 <!-- INSTALL MODAL -->
 <div class="modal-overlay" id="install-modal" style="display:none" onclick="if(event.target===this)closeInstallModal()">
@@ -1257,15 +1276,30 @@ let pwaPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   pwaPrompt = e;
-  // Show native button text change
   const btn = document.getElementById('android-install-btn');
   if (btn) btn.textContent = '📲 Instaliraj sada (automatski)';
+  // Show install banner if not dismissed recently
+  const dismissed = parseInt(localStorage.getItem('ib_dismissed') || '0');
+  const weekMs = 7 * 24 * 3600 * 1000;
+  if (Date.now() - dismissed > weekMs) {
+    setTimeout(() => document.getElementById('install-banner').classList.add('show'), 1500);
+  }
 });
 
 window.addEventListener('appinstalled', () => {
   closeInstallModal();
+  document.getElementById('install-banner').classList.remove('show');
   showToast('Elaborat instaliran na uređaj ✓');
 });
+
+function installBannerInstall() {
+  document.getElementById('install-banner').classList.remove('show');
+  pwaInstall();
+}
+function installBannerDismiss() {
+  document.getElementById('install-banner').classList.remove('show');
+  localStorage.setItem('ib_dismissed', Date.now());
+}
 
 function pwaInstall() {
   // Detect platform and show appropriate tab
