@@ -1212,7 +1212,7 @@ function renderSjekored() {
           const sugg = lastReal ? ' · ~' + (lastReal + 10) : '';
           const isPrelazni = /P$/i.test(e.odjel);
           const prelazniDot = isPrelazni ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
-          return `<div class="sj-card ${cardCls}" onclick="sjDetailOpen(${JSON.stringify(e.gj)},${JSON.stringify(e.odjel)})">
+          return `<div class="sj-card ${cardCls}" onclick="sjDetailOpen('${e.gj}','${e.odjel}')">
             <div class="sj-card-odjel">Odjel ${e.odjel}${prelazniDot}</div>
             <div class="sj-card-sub">GK: ${e.gk || '—'}${sugg}</div>
             <div class="sj-card-pov">${e.pov_total ? e.pov_total + ' ha' : ''}</div>
