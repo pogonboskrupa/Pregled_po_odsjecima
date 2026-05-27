@@ -344,6 +344,35 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .plt-tab.active{background:var(--accent);color:#fff;}
 .modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
 .modal-note{font-size:0.72rem;color:var(--text-muted);margin-top:12px;padding:8px 10px;background:var(--surface2);border-radius:3px;border-left:3px solid var(--accent-mid);}
+/* ── SJEKORED ODJEL DETAIL ── */
+.sj-card{cursor:pointer;}
+.sj-card:hover{filter:brightness(0.96);box-shadow:0 2px 6px rgba(0,0,0,0.12);}
+#sj-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:8000;display:none;align-items:center;justify-content:center;padding:16px;}
+#sj-detail-overlay.show{display:flex;}
+#sj-detail-box{background:var(--surface);border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,0.25);width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+.sjd-head{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
+.sjd-head-title{flex:1;}
+.sjd-odjel{font-size:1.05rem;font-weight:700;color:var(--text);}
+.sjd-gj{font-size:0.7rem;color:var(--text-muted);margin-top:2px;}
+.sjd-prelazni{display:inline-block;font-size:0.67rem;font-weight:700;background:#fff3cd;color:#856404;border:1px solid #ffd966;border-radius:3px;padding:2px 7px;margin-top:5px;}
+.sjd-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted);padding:2px 4px;line-height:1;}
+.sjd-close:hover{color:var(--text);}
+.sjd-body{overflow-y:auto;padding:14px 18px 18px;}
+.sjd-table{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:8px;}
+.sjd-table th{text-align:right;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);font-weight:700;padding:4px 8px 6px;border-bottom:2px solid var(--border);}
+.sjd-table th:first-child{text-align:center;}
+.sjd-table td{padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-dim);}
+.sjd-table td:first-child{text-align:center;font-weight:700;color:var(--text);font-size:0.82rem;}
+.sjd-table tr:last-child td{border-bottom:none;}
+.sjd-table tr.sjd-total td{font-weight:700;color:var(--text);border-top:2px solid var(--border);border-bottom:none;background:var(--surface2);}
+.sjd-dc-row{margin-top:14px;}
+.sjd-dc-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);font-weight:700;margin-bottom:6px;}
+.sjd-dc-chart{display:flex;gap:6px;align-items:flex-end;height:52px;}
+.sjd-dc-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
+.sjd-dc-bar{width:100%;background:var(--accent-mid);border-radius:2px 2px 0 0;min-height:1px;}
+.sjd-dc-label{font-size:0.58rem;color:var(--text-muted);}
+.sjd-dc-val{font-size:0.58rem;color:var(--text-dim);}
+.sjd-empty{font-size:0.8rem;color:var(--text-muted);font-style:italic;padding:8px 0;}
 #install-banner{position:fixed;bottom:0;left:0;right:0;background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:11px 18px;z-index:9000;box-shadow:0 -2px 8px rgba(0,0,0,0.25);transform:translateY(100%);transition:transform 0.35s ease;}
 #install-banner.show{transform:translateY(0);}
 #install-banner .ib-icon{font-size:1.3rem;flex-shrink:0;}
@@ -367,6 +396,21 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   </div>
   <button class="ib-btn" onclick="installBannerInstall()">Instaliraj</button>
   <button class="ib-close" onclick="installBannerDismiss()" title="Zatvori">✕</button>
+</div>
+
+<!-- SJEKORED ODJEL DETAIL -->
+<div id="sj-detail-overlay" onclick="if(event.target===this)sjDetailClose()">
+  <div id="sj-detail-box">
+    <div class="sjd-head">
+      <div class="sjd-head-title">
+        <div class="sjd-odjel" id="sjd-title"></div>
+        <div class="sjd-gj" id="sjd-gj"></div>
+        <div id="sjd-prelazni" style="display:none"><span class="sjd-prelazni">↔ Prelazni odjel</span></div>
+      </div>
+      <button class="sjd-close" onclick="sjDetailClose()">✕</button>
+    </div>
+    <div class="sjd-body" id="sjd-body"></div>
+  </div>
 </div>
 
 <!-- INSTALL MODAL -->
@@ -1166,8 +1210,10 @@ function renderSjekored() {
         const cards = entries.map(e => {
           const lastReal = e.years_real.length ? Math.max(...e.years_real) : null;
           const sugg = lastReal ? ' · ~' + (lastReal + 10) : '';
-          return `<div class="sj-card ${cardCls}">
-            <div class="sj-card-odjel">Odjel ${e.odjel}</div>
+          const isPrelazni = /P$/i.test(e.odjel);
+          const prelazniDot = isPrelazni ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
+          return `<div class="sj-card ${cardCls}" onclick="sjDetailOpen(${JSON.stringify(e.gj)},${JSON.stringify(e.odjel)})">
+            <div class="sj-card-odjel">Odjel ${e.odjel}${prelazniDot}</div>
             <div class="sj-card-sub">GK: ${e.gk || '—'}${sugg}</div>
             <div class="sj-card-pov">${e.pov_total ? e.pov_total + ' ha' : ''}</div>
           </div>`;
@@ -1268,6 +1314,82 @@ function renderPager(pages,current,onClick,cid,total){
   if(e<pages-1)html+=`<span class="page-info">…</span><button class="page-btn" onclick="(${onClick})(${pages-1})">${pages}</button>`;
   html+=`<span class="page-info">Prikazano ${current*PAGE+1}–${Math.min((current+1)*PAGE,total)} od ${total}</span>`;
   c.innerHTML=html;
+}
+
+// ── SJEKORED ODJEL DETAIL ──
+const SJ_GJ_MAP={'RISOVAC-KRUPA':'RISOVAC KRUPA','GRMEČ-JASENICA':'GRMEČ JASENICA','BAŠTRA-ĆORKOVAČA':'BAŠTRA ĆORKOVAČA','GOMILA':'GOMILA','VOJSKOVA':'VOJSKOVA'};
+function sjFindOdsjeci(sjGj, sjOdjel){
+  const gjName=SJ_GJ_MAP[sjGj]||sjGj;
+  const odBase=sjOdjel.replace(/P$/i,'');   // strip trailing P
+  const baseNum=parseInt(odBase)||0;
+  const baseSuffix=odBase.replace(/^\d+/,''); // e.g. '/1', '/2', ''
+  return ODSJECI.filter(o=>{
+    if(o.gj!==gjName)return false;
+    const oNum=parseInt(o.odjel)||0;
+    const oSuffix=o.odjel.replace(/^\d+/,'');
+    if(oNum!==baseNum)return false;
+    return baseSuffix===''||oSuffix===baseSuffix;
+  });
+}
+function sjDetailOpen(gj, odjel){
+  const isPrelazni=/P$/i.test(odjel);
+  document.getElementById('sjd-title').textContent='Odjel '+odjel+(isPrelazni?' — Prelazni':'');
+  document.getElementById('sjd-gj').textContent='GJ '+gj;
+  const prelDiv=document.getElementById('sjd-prelazni');
+  prelDiv.style.display=isPrelazni?'':'none';
+  const odsjeci=sjFindOdsjeci(gj,odjel);
+  const body=document.getElementById('sjd-body');
+  if(!odsjeci.length){
+    body.innerHTML='<div class="sjd-empty">Nema podataka u elaboratu za ovaj odjel.</div>';
+  }else{
+    const totalPov=odsjeci.reduce((s,o)=>s+o.povrsina,0);
+    const totalM3=odsjeci.reduce((s,o)=>s+o.ukupno_m3,0);
+    // Table
+    let rows=odsjeci.map(o=>{
+      const col=m3c(o.ukupno_m3ha);
+      return `<tr>
+        <td>${o.odsjek}</td>
+        <td>${o.povrsina.toFixed(2)}</td>
+        <td>${o.gazd_klasa||'—'}</td>
+        <td>${o.sklop!=null?o.sklop+'%':'—'}</td>
+        <td style="color:${col};font-weight:700">${o.ukupno_m3ha.toFixed(1)}</td>
+        <td>${o.ukupno_m3.toLocaleString('bs',{maximumFractionDigits:0})}</td>
+      </tr>`;
+    }).join('');
+    // DC chart — sum across all odsjeci
+    const dcSum=odsjeci[0].dc.map((_,i)=>odsjeci.reduce((s,o)=>s+(o.dc[i]||0),0));
+    const dcMax=Math.max(...dcSum,0.01);
+    const dcBars=dcSum.map((v,i)=>{
+      const h=Math.round((v/dcMax)*48);
+      return `<div class="sjd-dc-bar-wrap">
+        <div class="sjd-dc-val">${v>0?v.toFixed(0):''}</div>
+        <div class="sjd-dc-bar" style="height:${Math.max(h,v>0?2:0)}px;background:${m3c(v)}"></div>
+        <div class="sjd-dc-label">${DC_LABELS[i]}</div>
+      </div>`;
+    }).join('');
+    body.innerHTML=`
+      <table class="sjd-table">
+        <thead><tr>
+          <th>Odsj.</th><th>ha</th><th>GK</th><th>Sklop</th><th>m³/ha</th><th>m³ ukupno</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr class="sjd-total">
+          <td>Σ</td>
+          <td>${totalPov.toFixed(2)}</td>
+          <td colspan="2"></td>
+          <td></td>
+          <td>${totalM3.toLocaleString('bs',{maximumFractionDigits:0})}</td>
+        </tr></tfoot>
+      </table>
+      <div class="sjd-dc-row">
+        <div class="sjd-dc-title">Debljinski razredi — m³/ha (prosjek odjela)</div>
+        <div class="sjd-dc-chart">${dcBars}</div>
+      </div>`;
+  }
+  document.getElementById('sj-detail-overlay').classList.add('show');
+}
+function sjDetailClose(){
+  document.getElementById('sj-detail-overlay').classList.remove('show');
 }
 
 // ── PWA ──
