@@ -349,7 +349,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sj-card:hover{filter:brightness(0.96);box-shadow:0 2px 6px rgba(0,0,0,0.12);}
 #sj-detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:8000;display:none;align-items:center;justify-content:center;padding:16px;}
 #sj-detail-overlay.show{display:flex;}
-#sj-detail-box{background:var(--surface);border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,0.25);width:100%;max-width:560px;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;}
+#sj-detail-box{background:var(--surface);border-radius:6px;box-shadow:0 8px 32px rgba(0,0,0,0.25);width:100%;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;}
 .sjd-head{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:10px;}
 .sjd-head-title{flex:1;}
 .sjd-odjel{font-size:1.05rem;font-weight:700;color:var(--text);}
@@ -358,21 +358,34 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sjd-close{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--text-muted);padding:2px 4px;line-height:1;}
 .sjd-close:hover{color:var(--text);}
 .sjd-body{overflow-y:auto;padding:14px 18px 18px;}
-.sjd-table{width:100%;border-collapse:collapse;font-size:0.78rem;margin-top:8px;}
-.sjd-table th{text-align:right;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);font-weight:700;padding:4px 8px 6px;border-bottom:2px solid var(--border);}
+.sjd-section-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--text-muted);font-weight:700;margin:14px 0 6px;}
+.sjd-section-title:first-child{margin-top:0;}
+.sjd-table-wrap{overflow-x:auto;border-radius:3px;border:1px solid var(--border);}
+.sjd-table{width:100%;border-collapse:collapse;font-size:0.78rem;white-space:nowrap;}
+.sjd-table th{text-align:right;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:700;padding:5px 10px 6px;border-bottom:2px solid var(--border);background:var(--surface2);}
 .sjd-table th:first-child{text-align:center;}
-.sjd-table td{padding:5px 8px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-dim);}
+.sjd-table td{padding:5px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-dim);}
 .sjd-table td:first-child{text-align:center;font-weight:700;color:var(--text);font-size:0.82rem;}
-.sjd-table tr:last-child td{border-bottom:none;}
-.sjd-table tr.sjd-total td{font-weight:700;color:var(--text);border-top:2px solid var(--border);border-bottom:none;background:var(--surface2);}
-.sjd-dc-row{margin-top:14px;}
-.sjd-dc-title{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);font-weight:700;margin-bottom:6px;}
-.sjd-dc-chart{display:flex;gap:6px;align-items:flex-end;height:52px;}
-.sjd-dc-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;}
-.sjd-dc-bar{width:100%;background:var(--accent-mid);border-radius:2px 2px 0 0;min-height:1px;}
+.sjd-table tbody tr:last-child td{border-bottom:none;}
+.sjd-table tr.sjd-total td{font-weight:700;color:var(--text);border-top:2px solid var(--border);background:var(--surface2);}
+.sjd-dc-chart{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:4px;}
+.sjd-dc-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
+.sjd-dc-bar{width:100%;border-radius:2px 2px 0 0;min-height:1px;}
 .sjd-dc-label{font-size:0.58rem;color:var(--text-muted);}
-.sjd-dc-val{font-size:0.58rem;color:var(--text-dim);}
+.sjd-dc-val{font-size:0.58rem;color:var(--text-dim);min-height:0.8em;}
+.sjd-vrste-list{display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:3px;overflow:hidden;}
+.sjd-vrsta-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid var(--border);font-size:0.78rem;}
+.sjd-vrsta-row:last-child{border-bottom:none;}
+.sjd-vrsta-name{flex:1;font-weight:600;color:var(--text);}
+.sjd-vrsta-badge{font-size:0.62rem;font-weight:700;padding:1px 6px;border-radius:2px;white-space:nowrap;}
+.badge-č-sm{background:#e8f0e8;color:#2c5f2e;}
+.badge-l-sm{background:#f0e8e0;color:#7a3010;}
+.sjd-vrsta-omjer{font-size:0.72rem;color:var(--text-muted);min-width:32px;text-align:right;}
+.sjd-vrsta-m3ha{font-size:0.78rem;font-weight:700;min-width:64px;text-align:right;}
+.sjd-vrsta-bar-wrap{width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;flex-shrink:0;}
+.sjd-vrsta-bar{height:100%;border-radius:3px;}
 .sjd-empty{font-size:0.8rem;color:var(--text-muted);font-style:italic;padding:8px 0;}
+em;color:var(--text-muted);font-style:italic;padding:8px 0;}
 #install-banner{position:fixed;bottom:0;left:0;right:0;background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:11px 18px;z-index:9000;box-shadow:0 -2px 8px rgba(0,0,0,0.25);transform:translateY(100%);transition:transform 0.35s ease;}
 #install-banner.show{transform:translateY(0);}
 #install-banner .ib-icon{font-size:1.3rem;flex-shrink:0;}
@@ -1333,7 +1346,7 @@ function sjFindOdsjeci(sjGj, sjOdjel){
 }
 function sjDetailOpen(gj, odjel){
   const isPrelazni=/P$/i.test(odjel);
-  document.getElementById('sjd-title').textContent='Odjel '+odjel+(isPrelazni?' — Prelazni':'');
+  document.getElementById('sjd-title').textContent='Odjel '+odjel;
   document.getElementById('sjd-gj').textContent='GJ '+gj;
   const prelDiv=document.getElementById('sjd-prelazni');
   prelDiv.style.display=isPrelazni?'':'none';
@@ -1341,51 +1354,87 @@ function sjDetailOpen(gj, odjel){
   const body=document.getElementById('sjd-body');
   if(!odsjeci.length){
     body.innerHTML='<div class="sjd-empty">Nema podataka u elaboratu za ovaj odjel.</div>';
-  }else{
-    const totalPov=odsjeci.reduce((s,o)=>s+o.povrsina,0);
-    const totalM3=odsjeci.reduce((s,o)=>s+o.ukupno_m3,0);
-    // Table
-    let rows=odsjeci.map(o=>{
-      const col=m3c(o.ukupno_m3ha);
-      return `<tr>
-        <td>${o.odsjek}</td>
-        <td>${o.povrsina.toFixed(2)}</td>
-        <td>${o.gazd_klasa||'—'}</td>
-        <td>${o.sklop!=null?o.sklop+'%':'—'}</td>
-        <td style="color:${col};font-weight:700">${o.ukupno_m3ha.toFixed(1)}</td>
-        <td>${o.ukupno_m3.toLocaleString('bs',{maximumFractionDigits:0})}</td>
-      </tr>`;
-    }).join('');
-    // DC chart — sum across all odsjeci
-    const dcSum=odsjeci[0].dc.map((_,i)=>odsjeci.reduce((s,o)=>s+(o.dc[i]||0),0));
-    const dcMax=Math.max(...dcSum,0.01);
-    const dcBars=dcSum.map((v,i)=>{
-      const h=Math.round((v/dcMax)*48);
-      return `<div class="sjd-dc-bar-wrap">
-        <div class="sjd-dc-val">${v>0?v.toFixed(0):''}</div>
-        <div class="sjd-dc-bar" style="height:${Math.max(h,v>0?2:0)}px;background:${m3c(v)}"></div>
-        <div class="sjd-dc-label">${DC_LABELS[i]}</div>
-      </div>`;
-    }).join('');
-    body.innerHTML=`
+    document.getElementById('sj-detail-overlay').classList.add('show');
+    return;
+  }
+  const totalPov=odsjeci.reduce((s,o)=>s+o.povrsina,0);
+  const totalM3=odsjeci.reduce((s,o)=>s+o.ukupno_m3,0);
+
+  // ── Odsjeci table ──
+  const rows=odsjeci.map(o=>{
+    const col=m3c(o.ukupno_m3ha);
+    return `<tr>
+      <td>${o.odsjek}</td>
+      <td>${o.povrsina.toFixed(2)}</td>
+      <td>${o.gazd_klasa||'—'}</td>
+      <td>${o.sklop!=null?o.sklop+'%':'—'}</td>
+      <td style="color:${col};font-weight:700">${o.ukupno_m3ha.toFixed(1)}</td>
+      <td>${o.ukupno_m3.toLocaleString('bs',{maximumFractionDigits:0})}</td>
+    </tr>`;
+  }).join('');
+
+  // ── DC chart — weighted average across odsjeci ──
+  const dcAvg=odsjeci[0].dc.map((_,i)=>{
+    const wSum=odsjeci.reduce((s,o)=>s+(o.dc[i]||0)*o.povrsina,0);
+    return totalPov>0?wSum/totalPov:0;
+  });
+  const dcMax=Math.max(...dcAvg,0.01);
+  const dcBars=dcAvg.map((v,i)=>{
+    const h=Math.round((v/dcMax)*52);
+    return `<div class="sjd-dc-bar-wrap">
+      <div class="sjd-dc-val">${v>0?v.toFixed(0):''}</div>
+      <div class="sjd-dc-bar" style="height:${Math.max(h,v>0?2:0)}px;background:${m3c(v)}"></div>
+      <div class="sjd-dc-label">${DC_LABELS[i]}</div>
+    </div>`;
+  }).join('');
+
+  // ── Vrste — aggregate by species name across all odsjeci ──
+  const vrsteMap={};
+  odsjeci.forEach(o=>{
+    const k=gk(o);
+    (VRSTE_BY_KEY[k]||[]).forEach(v=>{
+      if(!vrsteMap[v.naziv]) vrsteMap[v.naziv]={naziv:v.naziv,grupa:v.grupa,m3:0,pov:0};
+      vrsteMap[v.naziv].m3+=v.m3;
+      vrsteMap[v.naziv].pov+=o.povrsina;
+    });
+  });
+  const vrsteList=Object.values(vrsteMap)
+    .map(v=>({...v,m3ha:v.pov>0?v.m3/v.pov:0}))
+    .sort((a,b)=>b.m3-a.m3);
+  const maxM3=vrsteList.length?vrsteList[0].m3:1;
+  const vrsteRows=vrsteList.map(v=>{
+    const isC=v.grupa==='Četinari';
+    const col=isC?'var(--četinari)':'var(--lišćari)';
+    const pct=Math.round(v.m3/maxM3*100);
+    return `<div class="sjd-vrsta-row">
+      <div class="sjd-vrsta-name">${v.naziv}</div>
+      <span class="sjd-vrsta-badge ${isC?'badge-č-sm':'badge-l-sm'}">${v.grupa}</span>
+      <div class="sjd-vrsta-bar-wrap"><div class="sjd-vrsta-bar" style="width:${pct}%;background:${col}"></div></div>
+      <div class="sjd-vrsta-m3ha" style="color:${col}">${v.m3ha.toFixed(1)} m³/ha</div>
+      <div class="sjd-vrsta-omjer">${v.m3.toLocaleString('bs',{maximumFractionDigits:0})} m³</div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML=`
+    <div class="sjd-section-title">Odsjeci</div>
+    <div class="sjd-table-wrap">
       <table class="sjd-table">
         <thead><tr>
           <th>Odsj.</th><th>ha</th><th>GK</th><th>Sklop</th><th>m³/ha</th><th>m³ ukupno</th>
         </tr></thead>
         <tbody>${rows}</tbody>
         <tfoot><tr class="sjd-total">
-          <td>Σ</td>
-          <td>${totalPov.toFixed(2)}</td>
-          <td colspan="2"></td>
-          <td></td>
+          <td>Σ</td><td>${totalPov.toFixed(2)}</td>
+          <td colspan="2"></td><td></td>
           <td>${totalM3.toLocaleString('bs',{maximumFractionDigits:0})}</td>
         </tr></tfoot>
       </table>
-      <div class="sjd-dc-row">
-        <div class="sjd-dc-title">Debljinski razredi — m³/ha (prosjek odjela)</div>
-        <div class="sjd-dc-chart">${dcBars}</div>
-      </div>`;
-  }
+    </div>
+    <div class="sjd-section-title">Debljinski razredi — m³/ha (ponderisani prosjek)</div>
+    <div class="sjd-dc-chart">${dcBars}</div>
+    ${vrsteList.length?`<div class="sjd-section-title">Vrste drveta</div>
+    <div class="sjd-vrste-list">${vrsteRows}</div>`:''}`;
+
   document.getElementById('sj-detail-overlay').classList.add('show');
 }
 function sjDetailClose(){
