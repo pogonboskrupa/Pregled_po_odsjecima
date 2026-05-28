@@ -813,7 +813,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
         </div>
         <div class="field-group" style="width:140px">
           <label>Tip GK</label>
-          <select id="pgk-tip" onchange="renderPrirastGK()"><option value="">— Sve —</option><option value="1">Visoke šume (1xxx)</option><option value="3">Plantaže (3xxx)</option><option value="4">Panjače (4xxx)</option></select>
+          <select id="pgk-tip" onchange="renderPrirastGK()"><option value="">— Sve —</option><option value="1">Visoke šume (1xxx)</option><option value="3">Kulture (3xxx)</option><option value="4">Izdanačka šuma (4xxx)</option></select>
         </div>
         <div class="results-meta" id="pgk-meta" style="margin-left:auto;padding:0"></div>
       </div>
@@ -2163,7 +2163,7 @@ function renderPrirastGK(){
   tbody.innerHTML='';
   pgkExpandedKey=null;
 
-  const GK_TIP={1:'Visoka šuma',3:'Plantaža',4:'Panjača'};
+  const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanačka šuma'};
   const GK_COL={1:'#1a5e20',3:'#1565c0',4:'#6a1e00'};
 
   data.forEach(r=>{
@@ -2236,7 +2236,7 @@ function buildExpandGK(r){
   const DC_L=['0-5','6-10','11-20','21-30','31-50','51-80','>80'];
 
   const totalM3ha=r.vrste.reduce((s,v)=>s+v.m3ha,0);
-  const GK_TIP={1:'Visoka šuma',3:'Plantaža',4:'Panjača'};
+  const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanačka šuma'};
   const tipLabel=GK_TIP[String(r.gk)[0]]||'';
 
   let infoHtml=`<div class="exp-info" style="min-width:150px">
