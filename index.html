@@ -355,6 +355,18 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   #pgk-table{min-width:0;table-layout:auto;}
   #pgk-table th:nth-child(n+7):nth-child(-n+13),
   #pgk-table td:nth-child(n+7):nth-child(-n+13){display:none;}
+  /* pgk expand: constrain width so inner table can scroll */
+  #pgk-body .expand-row td{
+    max-width:calc(100vw - 24px);
+    overflow-x:auto;
+    display:block;
+    padding:0;
+    box-sizing:border-box;
+  }
+  #pgk-body .expand-row td > div{
+    max-width:calc(100vw - 24px);
+    overflow-x:auto;
+  }
 }
 /* INSTALL MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
