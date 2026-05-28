@@ -996,15 +996,20 @@ function buildExpand(key,o){
   const vrste=VRSTE_BY_KEY[key]||[];
   const sorted=[...vrste].sort((a,b)=>b.m3ha-a.m3ha);
   const dcMax=Math.max(...o.dc,0.01);
+  const pr=(typeof PRIRAST!=='undefined'&&PRIRAST[o.gj_br])?PRIRAST[o.gj_br][o.gazd_klasa]||null:null;
+  const prM3est=pr?(pr.m3ha*o.povrsina):0;
   const infoBox=`<div class="exp-info"><div class="exp-info-title">Podaci odsjeka</div>
     <div class="exp-info-row"><span class="lbl">GJ:</span><span class="val">${o.gj}</span></div>
     <div class="exp-info-row"><span class="lbl">Odjel / Odsjek:</span><span class="val">${o.odjel} / ${o.odsjek}</span></div>
     <div class="exp-info-row"><span class="lbl">Površina:</span><span class="val">${o.povrsina.toFixed(2)} ha</span></div>
     <div class="exp-info-row"><span class="lbl">Gazd. klasa:</span><span class="val">${o.gazd_klasa||'—'}</span></div>
     <div class="exp-info-row"><span class="lbl">Sklop:</span><span class="val">${o.sklop!=null?o.sklop+'%':'—'}</span></div>
-    <div class="exp-info-row"><span class="lbl">m³/ha:</span><span class="val" style="color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</span></div>
-    <div class="exp-info-row"><span class="lbl">Ukupno (m³):</span><span class="val">${o.ukupno_m3.toLocaleString('bs',{maximumFractionDigits:0})}</span></div>
-    <div class="exp-info-row"><span class="lbl">Rel. greška:</span><span class="val">${o.rel_greska>0?o.rel_greska.toFixed(1)+'%':'—'}</span></div>
+    <div class="exp-info-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px"><span class="lbl">Zaliha m³/ha:</span><span class="val" style="color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</span></div>
+    <div class="exp-info-row"><span class="lbl">Ukupna zaliha (m³):</span><span class="val">${o.ukupno_m3.toLocaleString('bs',{maximumFractionDigits:0})}</span></div>
+    <div class="exp-info-row"><span class="lbl">Rel. greška zalihe:</span><span class="val">${o.rel_greska>0?o.rel_greska.toFixed(1)+'%':'—'}</span></div>
+    <div class="exp-info-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;background:rgba(44,95,46,0.04);margin-left:-4px;margin-right:-4px;padding-left:4px;padding-right:4px;border-radius:2px"><span class="lbl" style="color:var(--accent)">Prirast m³/ha:</span><span class="val" style="color:var(--accent)">${pr?pr.m3ha.toFixed(3):'—'}</span></div>
+    <div class="exp-info-row" style="background:rgba(44,95,46,0.04);margin-left:-4px;margin-right:-4px;padding-left:4px;padding-right:4px"><span class="lbl" style="color:var(--accent)">Prirast odsjeka (m³):</span><span class="val" style="color:var(--accent)">${pr?prM3est.toFixed(1):'—'}</span></div>
+    ${pr?`<div class="exp-info-row" style="background:rgba(44,95,46,0.04);margin-left:-4px;margin-right:-4px;padding-left:4px;padding-right:4px;border-radius:0 0 2px 2px"><span class="lbl">Rel. greška prirasta:</span><span class="val">${pr.err!=null?pr.err.toFixed(1)+'%':'—'}</span></div>`:''}
   </div>`;
   const dcBars=o.dc.map((v,i)=>{
     const h=dcMax>0?Math.round((v/dcMax)*68):0;
@@ -1012,7 +1017,31 @@ function buildExpand(key,o){
       <div class="dc-bar-outer" style="height:68px"><div class="dc-bar-inner" style="height:${h}px;background:${m3c(v)}"></div></div>
       <div class="dc-label">${DC_LABELS[i]}</div></div>`;
   }).join('');
-  const dcBox=`<div class="exp-dc"><div class="exp-dc-title">Debljinski razredi (m³/ha)</div><div class="dc-chart">${dcBars}</div></div>`;
+  const dcBox=`<div class="exp-dc"><div class="exp-dc-title">Zaliha — debljinski razredi (m³/ha)</div><div class="dc-chart">${dcBars}</div></div>`;
+  let prDcBox='';
+  if(pr){
+    const prMax=Math.max(...pr.dc,0.001);
+    const prBars=pr.dc.map((v,i)=>{
+      const h=prMax>0?Math.round((v/prMax)*68):0;
+      return `<div class="dc-bar-wrap">
+        <div class="dc-val" style="color:var(--accent)">${v>0?v.toFixed(3):''}</div>
+        <div class="dc-bar-outer" style="height:68px"><div class="dc-bar-inner" style="height:${Math.max(h,v>0?2:0)}px;background:var(--accent);opacity:0.82"></div></div>
+        <div class="dc-label">${DC_LABELS[i]}</div></div>`;
+    }).join('');
+    const srcKat=Math.floor(o.gazd_klasa/1000)*1000;
+    prDcBox=`<div class="exp-dc" style="border-color:rgba(44,95,46,0.3);background:rgba(44,95,46,0.03)">
+      <div class="exp-dc-title" style="color:var(--accent)">Prirast — debljinski razredi (m³/ha)
+        <span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;font-size:0.65rem;color:var(--text-muted)">
+          klasa ${srcKat}xx · ${pr.povr} ha · ${pr.n} krugova${pr.err!=null?' · greška '+pr.err.toFixed(1)+'%':''}
+        </span>
+      </div>
+      <div class="dc-chart">${prBars}</div>
+      <div style="margin-top:6px;font-size:0.68rem;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap">
+        <span>Ukupno: <strong style="color:var(--accent)">${pr.m3ha.toFixed(3)} m³/ha</strong></span>
+        <span>Ovaj odsjek (${o.povrsina.toFixed(1)} ha): <strong style="color:var(--accent)">${prM3est.toFixed(1)} m³/god</strong></span>
+      </div>
+    </div>`;
+  }
   const vrsteRows=!sorted.length?'<div style="color:var(--text-muted);font-size:0.75rem;font-style:italic">Nema podataka o vrstama.</div>'
     :sorted.map(v=>{
       const badge=v.grupa==='Četinari'?'badge-č':'badge-l';
@@ -1025,7 +1054,7 @@ function buildExpand(key,o){
         <div class="sp-m3ha" style="color:${col}">${v.m3ha.toFixed(2)} m³/ha</div></div>`;
     }).join('');
   const vrsteBox=`<div class="exp-vrste"><div class="exp-vrste-title">Vrste drveta (${sorted.length})</div>${vrsteRows}</div>`;
-  return `<div class="expand-panel">${infoBox}${dcBox}${vrsteBox}</div>`;
+  return `<div class="expand-panel">${infoBox}${dcBox}${prDcBox}${vrsteBox}</div>`;
 }
 function clearSearch(){
   ['s-gj','s-odjel','s-odsjek','s-ha-min','s-ha-max'].forEach(id=>{const e=document.getElementById(id);e.tagName==='SELECT'?e.value='':e.value=''});
