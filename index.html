@@ -351,10 +351,10 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   #prirast-table .pr-col-m3ha,
   #prirast-table .pr-col-m3god,
   #prirast-table .pr-col-zaliha{width:auto;}
-  /* pgk table: hide DC columns on mobile */
-  #pgk-table{min-width:0;table-layout:auto;}
-  #pgk-table th:nth-child(n+7):nth-child(-n+13),
-  #pgk-table td:nth-child(n+7):nth-child(-n+13){display:none;}
+  /* pgk table: horizontal scroll on mobile, keep all columns, no sticky */
+  #pgk-table{min-width:780px;}
+  #pgk-table thead th:nth-child(1),
+  #pgk-table tbody td:nth-child(1){position:static;background:inherit;}
   /* pgk expand: constrain width so inner table can scroll */
   #pgk-body .expand-row > td{
     max-width:calc(100vw - 24px);
