@@ -361,18 +361,15 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   #pgk-table thead th{position:sticky;top:0;z-index:2;}
   #pgk-table thead th:nth-child(1),
   #pgk-table tbody td:nth-child(1){position:static;background:inherit;}
-  /* pgk expand: constrain width so inner table can scroll */
+  /* pgk expand: let td keep its natural colspan width; inner div handles scroll */
   #pgk-body .expand-row > td{
-    max-width:calc(100vw - 22px);
-    overflow-x:auto;
-    display:block;
     padding:0;
-    box-sizing:border-box;
   }
   #pgk-body .expand-row > td > div{
     max-width:calc(100vw - 22px);
     overflow-x:auto;
     -webkit-overflow-scrolling:touch;
+    box-sizing:border-box;
   }
 }
 /* INSTALL MODAL */
