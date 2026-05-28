@@ -252,6 +252,19 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .toast{position:fixed;bottom:24px;right:24px;background:#1a3d1c;color:#fff;padding:10px 18px;border-radius:4px;font-size:0.78rem;font-weight:600;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;}
 .toast.show{opacity:1;}
 
+/* PRIRAST TABLE — column widths */
+#prirast-table{min-width:1080px;table-layout:fixed;}
+#prirast-table .pr-col-rang{width:62px;}
+#prirast-table .pr-col-gj{width:158px;}
+#prirast-table .pr-col-odjel{width:58px;}
+#prirast-table .pr-col-odsjek{width:58px;}
+#prirast-table .pr-col-ha{width:62px;}
+#prirast-table .pr-col-gk{width:76px;}
+#prirast-table .pr-col-m3ha{width:96px;}
+#prirast-table .pr-col-m3god{width:96px;}
+#prirast-table .pr-col-dc{width:56px;}
+#prirast-table .pr-col-zaliha{width:84px;}
+
 /* PRINT */
 @media print {
   body{height:auto;overflow:visible;font-size:11px;}
@@ -322,6 +335,18 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   .sj-sep{display:none;}
   .sj-main{overflow:visible;}
   .gantt-wrap{padding:9px 11px;}
+  /* prirast table: hide DC columns and gazd.klasa on mobile */
+  #prirast-table{min-width:0;table-layout:auto;}
+  #prirast-table .pr-col-dc,
+  #prirast-table .pr-col-gk{display:none;}
+  #prirast-table .pr-col-gj{width:auto;max-width:110px;overflow:hidden;text-overflow:ellipsis;}
+  #prirast-table .pr-col-rang{width:46px;}
+  #prirast-table .pr-col-odjel,
+  #prirast-table .pr-col-odsjek{width:44px;}
+  #prirast-table .pr-col-ha,
+  #prirast-table .pr-col-m3ha,
+  #prirast-table .pr-col-m3god,
+  #prirast-table .pr-col-zaliha{width:auto;}
 }
 /* INSTALL MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -744,19 +769,23 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
     </div>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
-    <div class="table-scroll"><table><thead><tr>
-      <th style="width:32px">Rang</th><th>Gospod. jedinica</th><th>Odjel</th><th>Odsjek</th>
-      <th class="num">ha</th><th class="num">Gazd. klasa</th>
-      <th class="num" style="background:#2c5f2e;color:#fff">Prirast m³/ha ↓</th>
-      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.85)">Prirast m³/god</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">0–5</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">6–10</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">11–20</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">21–30</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">31–50</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">51–80</th>
-      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">&gt;80</th>
-      <th class="num">Zaliha m³/ha</th>
+    <div class="table-scroll"><table id="prirast-table"><thead><tr>
+      <th class="pr-col-rang">Rang</th>
+      <th class="pr-col-gj">Gospod. jedinica</th>
+      <th class="pr-col-odjel">Odjel</th>
+      <th class="pr-col-odsjek">Odsjek</th>
+      <th class="num pr-col-ha">ha</th>
+      <th class="num pr-col-gk">Gazd. klasa</th>
+      <th class="num pr-col-m3ha" style="background:#2c5f2e;color:#fff">Prirast m³/ha ↓</th>
+      <th class="num pr-col-m3god" style="background:#2c5f2e;color:rgba(255,255,255,0.85)">Prirast m³/god</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">0–5</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">6–10</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">11–20</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">21–30</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">31–50</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">51–80</th>
+      <th class="num pr-col-dc" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">&gt;80</th>
+      <th class="num pr-col-zaliha">Zaliha m³/ha</th>
     </tr></thead><tbody id="prirast-body"></tbody></table></div>
   </div>
 </div>
@@ -1906,7 +1935,7 @@ function renderPrirast(){
   tbody.innerHTML='';
   prExpandedKey=null;
 
-  const nd='<td class="num" style="color:var(--border)">—</td>';
+  const nd='<td class="num pr-col-dc" style="color:var(--border)">—</td>';
   data.forEach((o,i)=>{
     const p=o._pr;
     const key=gk(o);
@@ -1914,22 +1943,22 @@ function renderPrirast(){
     const accentCol=p?'var(--accent)':'var(--text-muted)';
     const medal=i<3?['🥇','🥈','🥉'][i]:(i+1)+'.';
     const dcCols=p
-      ? p.dc.map(v=>`<td class="num" style="font-size:0.72rem;color:${v>0?'var(--accent)':'var(--text-muted)'};font-weight:${v>0?600:400}">${v>0?v.toFixed(3):'·'}</td>`).join('')
+      ? p.dc.map(v=>`<td class="num pr-col-dc" style="font-size:0.72rem;color:${v>0?'var(--accent)':'var(--text-muted)'};font-weight:${v>0?600:400}">${v>0?v.toFixed(3):'·'}</td>`).join('')
       : nd.repeat(7);
 
     const tr=document.createElement('tr');
     tr.className='clickable';
     tr.innerHTML=`
-      <td class="rank-num">▶ ${medal}</td>
-      <td class="gj">${o.gj}</td>
-      <td class="code dim">${o.odjel}</td>
-      <td class="code">${o.odsjek}</td>
-      <td class="num dim">${o.povrsina.toFixed(2)}</td>
-      <td class="num dim">${o.gazd_klasa||'—'}</td>
-      <td class="num" style="color:${accentCol};font-weight:${p?700:400}">${p?p.m3ha.toFixed(3):'—'}</td>
-      <td class="num" style="color:${accentCol}">${p?o.pr_m3.toFixed(1):'—'}</td>
+      <td class="rank-num pr-col-rang">▶ ${medal}</td>
+      <td class="gj pr-col-gj">${o.gj}</td>
+      <td class="code dim pr-col-odjel">${o.odjel}</td>
+      <td class="code pr-col-odsjek">${o.odsjek}</td>
+      <td class="num dim pr-col-ha">${o.povrsina.toFixed(2)}</td>
+      <td class="num dim pr-col-gk">${o.gazd_klasa||'—'}</td>
+      <td class="num pr-col-m3ha" style="color:${accentCol};font-weight:${p?700:400}">${p?p.m3ha.toFixed(3):'—'}</td>
+      <td class="num pr-col-m3god" style="color:${accentCol}">${p?o.pr_m3.toFixed(1):'—'}</td>
       ${dcCols}
-      <td class="num dim" style="color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</td>`;
+      <td class="num dim pr-col-zaliha" style="color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</td>`;
     tr.addEventListener('click',()=>prToggleExpand(key,tr,o));
     tbody.appendChild(tr);
 
