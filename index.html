@@ -730,8 +730,9 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
       <div class="filter-card-body">
       <div class="filter-row">
         <div class="field-group" style="min-width:195px"><label>Gospodarska jedinica</label><select id="pr-gj" onchange="renderPrirast()"><option value="">— Sve GJ —</option><option>GOMILA</option><option>BAŠTRA ĆORKOVAČA</option><option>VOJSKOVA</option><option>RISOVAC KRUPA</option><option>GRMEČ JASENICA</option></select></div>
-        <div class="field-group" style="width:210px"><label>Sortiraj po</label><select id="pr-sort" onchange="renderPrirast()"><option value="pr_m3ha">Prirast (m³/ha) — silazno</option><option value="pr_m3">Prirast ukupno (m³)</option><option value="povrsina">Površina (ha)</option><option value="ukupno_m3ha">Zaliha (m³/ha)</option></select></div>
-        <div class="field-group" style="width:100px"><label>Min. površina (ha)</label><input type="number" id="pr-ha-min" placeholder="0" min="0" oninput="renderPrirast()"></div>
+        <div class="field-group" style="width:100px"><label>Odjel</label><input type="text" id="pr-odjel" placeholder="npr. 009" oninput="renderPrirast()" style="height:30px"></div>
+        <div class="field-group" style="width:186px"><label>Sortiraj po</label><select id="pr-sort" onchange="renderPrirast()"><option value="pr_m3ha">Prirast (m³/ha) — silazno</option><option value="pr_m3">Prirast ukupno (m³)</option><option value="povrsina">Površina (ha)</option><option value="ukupno_m3ha">Zaliha (m³/ha)</option></select></div>
+        <div class="field-group" style="width:90px"><label>Min. površina (ha)</label><input type="number" id="pr-ha-min" placeholder="0" min="0" oninput="renderPrirast()"></div>
         <label class="toggle-chip" id="pr-chip-nd" onclick="togglePrirastND()" style="margin-top:auto" title="Prikaži samo odsjeke za koje postoje podaci o prirastu"><span id="pr-chip-nd-icon">◆</span> Samo s podacima</label>
         <div class="field-group" style="width:110px"><label>Prikaži</label><select id="pr-top" onchange="renderPrirast()"><option value="50">Top 50</option><option value="100">Top 100</option><option value="200">Top 200</option><option value="0">Svi</option></select></div>
       </div>
@@ -746,15 +747,15 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
     <div class="table-scroll"><table><thead><tr>
       <th style="width:32px">Rang</th><th>Gospod. jedinica</th><th>Odjel</th><th>Odsjek</th>
       <th class="num">ha</th><th class="num">Gazd. klasa</th>
-      <th class="num" style="color:var(--accent)">Prirast m³/ha ↓</th>
-      <th class="num">Prirast m³/god</th>
-      <th class="num" style="font-size:0.58rem">0–5</th>
-      <th class="num" style="font-size:0.58rem">6–10</th>
-      <th class="num" style="font-size:0.58rem">11–20</th>
-      <th class="num" style="font-size:0.58rem">21–30</th>
-      <th class="num" style="font-size:0.58rem">31–50</th>
-      <th class="num" style="font-size:0.58rem">51–80</th>
-      <th class="num" style="font-size:0.58rem">&gt;80</th>
+      <th class="num" style="background:#2c5f2e;color:#fff">Prirast m³/ha ↓</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.85)">Prirast m³/god</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">0–5</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">6–10</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">11–20</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">21–30</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">31–50</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">51–80</th>
+      <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem">&gt;80</th>
       <th class="num">Zaliha m³/ha</th>
     </tr></thead><tbody id="prirast-body"></tbody></table></div>
   </div>
@@ -1263,12 +1264,24 @@ function buildExpand(key,o){
       const col=v.grupa==='Četinari'?'var(--četinari)':'var(--lišćari)';
       const dcM=Math.max(...v.dc,0.01);
       const miniBars=v.dc.map(d=>`<div class="sp-dc-bar" style="height:${dcM>0?Math.max(Math.round(d/dcM*18),d>0?1:0):0}px;background:${col};opacity:0.7"></div>`).join('');
+      // Prirast per species — proportion of each DC class
+      let spPrM3ha=0;
+      if(pr){
+        pr.dc.forEach((prV,j)=>{
+          const totJ=o.dc[j]||0;
+          if(totJ>0) spPrM3ha+=prV*(v.dc[j]/totJ);
+        });
+      }
+      const spPrM3=spPrM3ha*o.povrsina;
+      const prBadge=pr&&spPrM3ha>0
+        ?`<span style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-left:auto;padding-left:10px;white-space:nowrap">▲ ${spPrM3ha.toFixed(3)} m³/ha&nbsp;&nbsp;<span style="font-weight:400;color:var(--text-muted)">${spPrM3.toFixed(1)} m³/god</span></span>`
+        :'';
       return `<div class="species-row"><div class="sp-name">${v.naziv}</div>
         <div class="sp-badges"><span class="badge ${badge}">${v.grupa}</span><span style="font-size:0.68rem;color:var(--text-muted)">${v.omjer}%</span><span style="font-size:0.68rem;color:var(--text-muted)">Bon.${v.bonitet||'—'}</span></div>
         <div class="sp-dc-mini">${miniBars}</div>
-        <div class="sp-m3ha" style="color:${col}">${v.m3ha.toFixed(2)} m³/ha</div></div>`;
+        <div class="sp-m3ha" style="color:${col}">${v.m3ha.toFixed(2)} m³/ha</div>${prBadge}</div>`;
     }).join('');
-  const vrsteBox=`<div class="exp-vrste"><div class="exp-vrste-title">Vrste drveta (${sorted.length})</div>${vrsteRows}</div>`;
+  const vrsteBox=`<div class="exp-vrste"><div class="exp-vrste-title">Vrste drveta (${sorted.length})${pr?'&nbsp;·&nbsp;<span style="font-size:0.6rem;color:var(--accent);font-weight:400">▲ prirast po vrsti (proporcionalno)</span>':''}</div>${vrsteRows}</div>`;
   return `<div class="expand-panel">${infoBox}${dcBox}${prDcBox}${vrsteBox}</div>`;
 }
 function clearSearch(){
@@ -1864,15 +1877,17 @@ const DC_LABELS_PR=['0-5','6-10','11-20','21-30','31-50','51-80','>80'];
 function renderPrirast(){
   if(typeof PRIRAST==='undefined') return;
   const gj=document.getElementById('pr-gj').value;
+  const od=document.getElementById('pr-odjel').value.trim();
   const sc=document.getElementById('pr-sort').value;
   const mn=parseFloat(document.getElementById('pr-ha-min').value)||0;
   const top=parseInt(document.getElementById('pr-top').value);
 
   let data=ODSJECI.map(o=>{
-    const p=(typeof PRIRAST!=='undefined'&&PRIRAST[o.gj_br])?PRIRAST[o.gj_br][o.gazd_klasa]||null:null;
+    const p=PRIRAST[o.gj_br]?PRIRAST[o.gj_br][o.gazd_klasa]||null:null;
     return {...o, _pr:p, pr_m3ha:p?p.m3ha:0, pr_m3:p?(p.m3ha*o.povrsina):0};
   }).filter(o=>{
     if(gj&&o.gj!==gj)return false;
+    if(od&&!String(o.odjel).includes(od))return false;
     if(o.povrsina<mn)return false;
     if(prND&&!o._pr)return false;
     return true;
