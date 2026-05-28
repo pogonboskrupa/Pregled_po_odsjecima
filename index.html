@@ -2167,14 +2167,15 @@ function renderPrirastGK(){
   const GK_COL={1:'#1a5e20',3:'#1565c0',4:'#6a1e00'};
 
   data.forEach(r=>{
-    const m3ha=r.vrste.reduce((s,v)=>s+v.m3ha,0);
+    // use direct values from PRIRAST (parsed from "Ukupno gazdinska klasa" row)
+    const pr=PRIRAST[r.gj_br]?PRIRAST[r.gj_br][r.gk]||null:null;
+    const m3ha=pr?pr.m3ha:r.vrste.reduce((s,v)=>s+v.m3ha,0);
+    const dc=pr?pr.dc:[0,0,0,0,0,0,0];
     const key=r.gj_br+'_'+r.gk;
     const safe=key.replace(/[^a-z0-9]/gi,'_');
     const tipKey=String(r.gk)[0];
     const tipLabel=GK_TIP[tipKey]||'';
     const tipCol=GK_COL[tipKey]||'var(--text-muted)';
-    const aggDc=[0,0,0,0,0,0,0];
-    r.vrste.forEach(v=>v.dc.forEach((d,i)=>aggDc[i]+=d));
 
     const tr=document.createElement('tr');
     tr.className='clickable';
@@ -2185,7 +2186,7 @@ function renderPrirastGK(){
       <td class="num dim">${r.povr.toFixed(1)}</td>
       <td class="num dim">${r.n}</td>
       <td class="num" style="color:${m3ha>0?'var(--accent)':'var(--text-muted)'};font-weight:${m3ha>0?700:400}">${m3ha>0?m3ha.toFixed(3):'—'}</td>
-      ${aggDc.map(v=>`<td class="num" style="font-size:0.72rem;color:${v>0?'var(--accent)':'var(--text-muted)'};font-weight:${v>0?600:400}">${v>0?v.toFixed(3):'·'}</td>`).join('')}
+      ${dc.map(v=>`<td class="num" style="font-size:0.72rem;color:${v>0?'var(--accent)':'var(--text-muted)'};font-weight:${v>0?600:400}">${v>0?v.toFixed(3):'·'}</td>`).join('')}
       <td class="num dim">${r.vrste.filter(v=>v.m3ha>0).length}</td>`;
     tr.addEventListener('click',()=>pgkToggleExpand(key,tr,r));
     tbody.appendChild(tr);
@@ -2235,7 +2236,8 @@ function buildExpandGK(r){
   const m3haMax=Math.max(...sorted.map(v=>v.m3ha),0.001);
   const DC_L=['0-5','6-10','11-20','21-30','31-50','51-80','>80'];
 
-  const totalM3ha=r.vrste.reduce((s,v)=>s+v.m3ha,0);
+  const pr=PRIRAST[r.gj_br]?PRIRAST[r.gj_br][r.gk]||null:null;
+  const totalM3ha=pr?pr.m3ha:r.vrste.reduce((s,v)=>s+v.m3ha,0);
   const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanačka šuma'};
   const tipLabel=GK_TIP[String(r.gk)[0]]||'';
 
