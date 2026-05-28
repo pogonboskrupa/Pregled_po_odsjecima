@@ -356,16 +356,17 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   #pgk-table th:nth-child(n+7):nth-child(-n+13),
   #pgk-table td:nth-child(n+7):nth-child(-n+13){display:none;}
   /* pgk expand: constrain width so inner table can scroll */
-  #pgk-body .expand-row td{
+  #pgk-body .expand-row > td{
     max-width:calc(100vw - 24px);
     overflow-x:auto;
     display:block;
     padding:0;
     box-sizing:border-box;
   }
-  #pgk-body .expand-row td > div{
+  #pgk-body .expand-row > td > div{
     max-width:calc(100vw - 24px);
     overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
   }
 }
 /* INSTALL MODAL */
