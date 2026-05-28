@@ -805,31 +805,26 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   </div><!-- end pr-sub-odsjeci -->
   <!-- Sub-panel: Po gazdinskim klasama -->
   <div id="pr-sub-gk" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
-    <div class="panel-inner">
-      <div class="filter-card" id="fc-pgk">
-        <div class="filter-card-title" onclick="toggleFilterCard('fc-pgk')">
-          <span class="fc-label">▸ Filter</span>
-          <span class="filter-card-toggle">▾</span>
+    <div class="panel-inner" style="padding-bottom:8px;">
+      <div class="filter-row" style="align-items:flex-end;gap:12px;">
+        <div class="field-group" style="min-width:220px">
+          <label>Gospodarska jedinica</label>
+          <select id="pgk-gj" onchange="renderPrirastGK()" style="font-weight:700;font-size:0.85rem;height:34px"></select>
         </div>
-        <div class="filter-card-body">
-        <div class="filter-row">
-          <div class="field-group" style="min-width:195px"><label>Gospodarska jedinica</label><select id="pgk-gj" onchange="renderPrirastGK()"><option value="">— Sve GJ —</option></select></div>
-          <div class="field-group" style="width:130px"><label>Tip GK</label><select id="pgk-tip" onchange="renderPrirastGK()"><option value="">— Sve —</option><option value="1">Visoke šume (1xxx)</option><option value="3">Plantaže (3xxx)</option><option value="4">Panjače (4xxx)</option></select></div>
-          <div class="field-group" style="width:100px"><label>GK broj</label><input type="text" id="pgk-search" placeholder="npr. 1102" oninput="renderPrirastGK()" style="height:30px"></div>
+        <div class="field-group" style="width:140px">
+          <label>Tip GK</label>
+          <select id="pgk-tip" onchange="renderPrirastGK()"><option value="">— Sve —</option><option value="1">Visoke šume (1xxx)</option><option value="3">Plantaže (3xxx)</option><option value="4">Panjače (4xxx)</option></select>
         </div>
-        </div>
-      </div>
-      <div class="results-bar">
-        <div class="results-meta" id="pgk-meta"></div>
+        <div class="results-meta" id="pgk-meta" style="margin-left:auto;padding:0"></div>
       </div>
     </div>
     <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
       <div class="table-scroll"><table id="pgk-table"><thead><tr>
         <th style="width:32px"></th>
-        <th>Gospod. jedinica</th>
-        <th class="num" style="width:70px">GK</th>
-        <th class="num" style="width:65px">ha</th>
-        <th class="num" style="width:55px">n</th>
+        <th class="num" style="width:72px">Gazd. klasa</th>
+        <th style="width:88px">Tip</th>
+        <th class="num" style="width:65px">ha (GK)</th>
+        <th class="num" style="width:46px">n</th>
         <th class="num" style="background:#2c5f2e;color:#fff;width:90px">m³/ha ↓</th>
         <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem;width:56px">0–5</th>
         <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem;width:56px">6–10</th>
@@ -838,7 +833,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
         <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem;width:56px">31–50</th>
         <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem;width:56px">51–80</th>
         <th class="num" style="background:#3a7035;color:rgba(255,255,255,0.8);font-size:0.55rem;width:56px">&gt;80</th>
-        <th class="num" style="width:55px">Vrste</th>
+        <th class="num" style="width:50px">Vrste</th>
       </tr></thead><tbody id="pgk-body"></tbody></table></div>
     </div>
   </div><!-- end pr-sub-gk -->
@@ -2148,33 +2143,36 @@ function renderPrirastGK(){
   if(typeof PRIRAST_GK==='undefined') return;
   const gjSel=document.getElementById('pgk-gj').value;
   const tipSel=document.getElementById('pgk-tip').value;
-  const srch=document.getElementById('pgk-search').value.trim();
 
-  let data=[...PRIRAST_GK];
-  if(gjSel) data=data.filter(r=>r.gj_br===parseInt(gjSel));
+  // require a GJ to be selected
+  if(!gjSel){
+    document.getElementById('pgk-body').innerHTML='';
+    document.getElementById('pgk-meta').innerHTML='<span style="color:var(--text-muted)">Odaberite gospodarsku jedinicu.</span>';
+    return;
+  }
+
+  let data=PRIRAST_GK.filter(r=>r.gj_br===parseInt(gjSel));
   if(tipSel) data=data.filter(r=>String(r.gk).startsWith(tipSel));
-  if(srch) data=data.filter(r=>String(r.gk).includes(srch));
+  data.sort((a,b)=>a.gk-b.gk);  // sort by GK code ascending
 
-  // sort by m3ha desc
-  data.sort((a,b)=>{
-    const am=a.vrste.reduce((s,v)=>s+v.m3ha,0);
-    const bm=b.vrste.reduce((s,v)=>s+v.m3ha,0);
-    return bm-am;
-  });
-
-  document.getElementById('pgk-meta').innerHTML=`Prikazano <strong>${data.length}</strong> gazdinskih klasa`;
+  const gjName=data.length?data[0].gj:gjSel;
+  document.getElementById('pgk-meta').innerHTML=
+    `<strong>${gjName}</strong> &nbsp;·&nbsp; <strong>${data.length}</strong> gazdinskih klasa &nbsp;·&nbsp; <span style="font-size:0.68rem;color:var(--text-muted)">Vrijednosti su m³/ha — bez množenja s površinom</span>`;
 
   const tbody=document.getElementById('pgk-body');
   tbody.innerHTML='';
   pgkExpandedKey=null;
 
-  const nd='<td class="num" style="color:var(--border)">—</td>';
+  const GK_TIP={1:'Visoka šuma',3:'Plantaža',4:'Panjača'};
+  const GK_COL={1:'#1a5e20',3:'#1565c0',4:'#6a1e00'};
+
   data.forEach(r=>{
     const m3ha=r.vrste.reduce((s,v)=>s+v.m3ha,0);
     const key=r.gj_br+'_'+r.gk;
     const safe=key.replace(/[^a-z0-9]/gi,'_');
-    const dcMax=Math.max(...r.vrste.flatMap(v=>v.dc),0.001);
-    // aggregate DC across all species
+    const tipKey=String(r.gk)[0];
+    const tipLabel=GK_TIP[tipKey]||'';
+    const tipCol=GK_COL[tipKey]||'var(--text-muted)';
     const aggDc=[0,0,0,0,0,0,0];
     r.vrste.forEach(v=>v.dc.forEach((d,i)=>aggDc[i]+=d));
 
@@ -2182,8 +2180,8 @@ function renderPrirastGK(){
     tr.className='clickable';
     tr.innerHTML=`
       <td class="rank-num">▶</td>
-      <td class="gj">${r.gj}</td>
-      <td class="num" style="font-weight:700">${r.gk}</td>
+      <td class="num" style="font-weight:800;font-size:0.85rem">${r.gk}</td>
+      <td style="font-size:0.68rem;font-weight:700;color:${tipCol}">${tipLabel}</td>
       <td class="num dim">${r.povr.toFixed(1)}</td>
       <td class="num dim">${r.n}</td>
       <td class="num" style="color:${m3ha>0?'var(--accent)':'var(--text-muted)'};font-weight:${m3ha>0?700:400}">${m3ha>0?m3ha.toFixed(3):'—'}</td>
@@ -2237,17 +2235,19 @@ function buildExpandGK(r){
   const m3haMax=Math.max(...sorted.map(v=>v.m3ha),0.001);
   const DC_L=['0-5','6-10','11-20','21-30','31-50','51-80','>80'];
 
-  // info box
-  const totalM3ha=sorted.reduce((s,v)=>s+v.m3ha,0);
-  let infoHtml=`<div class="exp-info" style="min-width:160px">
-    <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">Gazdinska klasa</div>
-    <div style="font-size:0.78rem;margin-bottom:3px"><span style="color:var(--text-muted)">GK:</span> <strong>${r.gk}</strong></div>
-    <div style="font-size:0.78rem;margin-bottom:3px"><span style="color:var(--text-muted)">GJ:</span> ${r.gj}</div>
-    <div style="font-size:0.78rem;margin-bottom:3px"><span style="color:var(--text-muted)">Površina:</span> ${r.povr.toFixed(1)} ha</div>
-    <div style="font-size:0.78rem;margin-bottom:3px"><span style="color:var(--text-muted)">Det. krugova:</span> ${r.n}</div>
-    <div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--border)">
-      <div style="font-size:0.72rem;color:var(--text-muted)">Ukupni prirast</div>
-      <div style="font-size:1rem;font-weight:800;color:var(--accent)">${totalM3ha.toFixed(3)} m³/ha</div>
+  const totalM3ha=r.vrste.reduce((s,v)=>s+v.m3ha,0);
+  const GK_TIP={1:'Visoka šuma',3:'Plantaža',4:'Panjača'};
+  const tipLabel=GK_TIP[String(r.gk)[0]]||'';
+
+  let infoHtml=`<div class="exp-info" style="min-width:150px">
+    <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">GK ${r.gk}</div>
+    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">${tipLabel}</div>
+    <div style="font-size:0.78rem;margin-bottom:2px"><span style="color:var(--text-muted)">Površina GK:</span> ${r.povr.toFixed(1)} ha</div>
+    <div style="font-size:0.78rem;margin-bottom:8px"><span style="color:var(--text-muted)">Det. krugova:</span> ${r.n}</div>
+    <div style="padding-top:6px;border-top:1px solid var(--border)">
+      <div style="font-size:0.65rem;color:var(--text-muted)">Ukupni prirast GK</div>
+      <div style="font-size:1.05rem;font-weight:800;color:var(--accent)">${totalM3ha.toFixed(3)} m³/ha</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">(izmjereno, bez množenja s ha)</div>
     </div>
   </div>`;
 
@@ -2401,9 +2401,13 @@ updateSortHeaders();
   PRIRAST_GK.forEach(r=>{ gjMap[r.gj_br]=r.gj; });
   const sel=document.getElementById('pgk-gj');
   if(!sel) return;
+  // placeholder first
+  const ph=document.createElement('option');
+  ph.value=''; ph.textContent='— Odaberite GJ —';
+  sel.appendChild(ph);
   Object.keys(gjMap).sort((a,b)=>+a-+b).forEach(br=>{
     const opt=document.createElement('option');
-    opt.value=br; opt.textContent=gjMap[br];
+    opt.value=br; opt.textContent='GJ '+br+' — '+gjMap[br];
     sel.appendChild(opt);
   });
 })();
