@@ -351,13 +351,14 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   #prirast-table .pr-col-m3ha,
   #prirast-table .pr-col-m3god,
   #prirast-table .pr-col-zaliha{width:auto;}
-  /* pgk sub-panel: release height constraints so tbody rows are visible */
+  /* pgk sub-panel: release flex-height collapse */
   #pr-sub-gk{overflow:visible!important;height:auto!important;flex:none!important;}
   #pr-sub-gk > div:last-child{overflow:visible!important;height:auto!important;flex:none!important;padding:0 11px!important;}
-  #pr-sub-gk .table-scroll{overflow-x:auto;overflow-y:visible;height:auto;flex:none;}
+  /* pgk table-scroll: fixed max-height with internal scroll (avoids body-clip issue) */
+  #pr-sub-gk .table-scroll{overflow-x:auto;overflow-y:auto;height:auto;max-height:calc(100dvh - 230px);min-height:150px;flex:none;}
   /* pgk table: horizontal scroll on mobile, keep all columns, no sticky */
   #pgk-table{min-width:780px;}
-  #pgk-table thead th{position:static;}
+  #pgk-table thead th{position:sticky;top:0;z-index:2;}
   #pgk-table thead th:nth-child(1),
   #pgk-table tbody td:nth-child(1){position:static;background:inherit;}
   /* pgk expand: constrain width so inner table can scroll */
