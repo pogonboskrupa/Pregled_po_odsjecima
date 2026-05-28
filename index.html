@@ -2230,58 +2230,54 @@ function pgkToggleExpand(key,tr,r){
 
 function buildExpandGK(r){
   const sorted=[...r.vrste].filter(v=>v.m3ha>0||v.dc.some(d=>d>0)).sort((a,b)=>b.m3ha-a.m3ha);
-  if(!sorted.length) return '<div class="expand-panel"><div style="color:var(--text-muted);padding:10px 14px;font-size:0.78rem;">Nema podataka po vrstama.</div></div>';
+  if(!sorted.length) return '<div style="padding:12px 16px;color:var(--text-muted);font-size:0.78rem;">Nema podataka po vrstama.</div>';
 
-  const dcMax=Math.max(...sorted.flatMap(v=>v.dc),0.001);
-  const m3haMax=Math.max(...sorted.map(v=>v.m3ha),0.001);
-  const DC_L=['0-5','6-10','11-20','21-30','31-50','51-80','>80'];
-
+  const DC_L=['0–5','6–10','11–20','21–30','31–50','51–80','&gt;80'];
   const pr=PRIRAST[r.gj_br]?PRIRAST[r.gj_br][r.gk]||null:null;
   const totalM3ha=pr?pr.m3ha:r.vrste.reduce((s,v)=>s+v.m3ha,0);
-  const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanačka šuma'};
+  const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanāčka šuma'};
   const tipLabel=GK_TIP[String(r.gk)[0]]||'';
 
-  let infoHtml=`<div class="exp-info" style="min-width:150px">
-    <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px">GK ${r.gk}</div>
-    <div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px">${tipLabel}</div>
-    <div style="font-size:0.78rem;margin-bottom:2px"><span style="color:var(--text-muted)">Površina GK:</span> ${r.povr.toFixed(1)} ha</div>
-    <div style="font-size:0.78rem;margin-bottom:8px"><span style="color:var(--text-muted)">Det. krugova:</span> ${r.n}</div>
-    <div style="padding-top:6px;border-top:1px solid var(--border)">
-      <div style="font-size:0.65rem;color:var(--text-muted)">Ukupni prirast GK</div>
-      <div style="font-size:1.05rem;font-weight:800;color:var(--accent)">${totalM3ha.toFixed(2)} m³/ha</div>
-      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:2px">(izmjereno, bez množenja s ha)</div>
-    </div>
-  </div>`;
+  const thS='background:#2c5f2e;color:rgba(255,255,255,0.88);padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;text-align:right;';
+  const thLS=thS+'text-align:left;';
+  const tdS='padding:5px 8px;font-size:0.76rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;';
+  const tdLS=tdS+'text-align:left;font-weight:700;';
 
-  // species rows
-  let vrsteRows='';
+  let rows='';
   sorted.forEach(v=>{
-    const barW=m3haMax>0?(v.m3ha/m3haMax*140).toFixed(0):0;
-    const dcBars=v.dc.map((d,i)=>{
-      const h=dcMax>0?Math.round(d/dcMax*28):0;
-      const col=d>0?'var(--accent)':'var(--border)';
-      return `<div style="display:flex;flex-direction:column;align-items:center;gap:1px;width:22px">
-        <div style="width:14px;height:${h}px;background:${col};border-radius:1px 1px 0 0;min-height:${d>0?2:0}px"></div>
-        <div style="font-size:0.48rem;color:var(--text-muted);line-height:1">${DC_L[i]}</div>
-      </div>`;
-    }).join('');
-
-    vrsteRows+=`<div class="species-row" style="display:flex;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--border)">
-      <div class="sp-name" style="min-width:170px;font-size:0.76rem;font-weight:700">${v.naziv}${v.kod?'<span style="color:var(--text-muted);font-weight:400;font-size:0.65rem;margin-left:5px">#'+v.kod+'</span>':''}</div>
-      <div style="display:flex;align-items:flex-end;gap:1px;height:32px">${dcBars}</div>
-      <div class="sp-m3ha" style="min-width:72px;font-size:0.82rem;font-weight:700;color:var(--accent)">${v.m3ha.toFixed(2)}<span style="font-size:0.62rem;font-weight:400;color:var(--text-muted)"> m³/ha</span></div>
-      <div style="flex:1;max-width:160px">
-        <div style="background:var(--accent-pale);border-radius:2px;height:8px;width:${barW}px;max-width:140px"></div>
-      </div>
-    </div>`;
+    const dcCells=v.dc.map(d=>
+      `<td style="${tdS}color:${d>0?'var(--accent)':'var(--text-muted)'};font-weight:${d>0?600:400}">${d>0?d.toFixed(2):'\xb7'}</td>`
+    ).join('');
+    rows+=`<tr>
+      <td style="${tdLS}">${v.naziv}${v.kod?` <span style="color:var(--text-muted);font-weight:400;font-size:0.65rem">#${v.kod}</span>`:''}</td>
+      ${dcCells}
+      <td style="${tdS}color:var(--accent);font-weight:700">${v.m3ha.toFixed(2)}</td>
+    </tr>`;
   });
 
-  let vrsteHtml=`<div class="exp-vrste" style="flex:2;min-width:400px">
-    <div style="font-size:0.6rem;font-weight:800;letter-spacing:0.07em;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px">Vrste drveća — prirast (m³/ha)</div>
-    ${vrsteRows}
-  </div>`;
+  const totDc=pr?pr.dc:[0,0,0,0,0,0,0];
+  const totDcCells=totDc.map(d=>
+    `<td style="${tdS}background:#f0f4f0;font-weight:700;color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'\xb7'}</td>`
+  ).join('');
+  rows+=`<tr>
+    <td style="${tdLS}background:#f0f4f0;font-size:0.68rem;color:var(--text-muted)">Ukupno GK ${r.gk}</td>
+    ${totDcCells}
+    <td style="${tdS}background:#f0f4f0;font-weight:800;color:var(--accent)">${totalM3ha.toFixed(2)}</td>
+  </tr>`;
 
-  return `<div class="expand-panel">${infoHtml}${vrsteHtml}</div>`;
+  return `<div style="padding:12px 16px 14px;overflow-x:auto;">
+    <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px">
+      <strong style="color:var(--accent)">GK ${r.gk}</strong>  \xb7  ${tipLabel}  \xb7  ${r.povr.toFixed(1)} ha  \xb7  ${r.n} det. krugova  \xb7  sve vrijednosti u m\xb3/ha
+    </div>
+    <table style="border-collapse:collapse;font-family:var(--mono);">
+      <thead><tr>
+        <th style="${thLS}min-width:160px">Vrsta drveta</th>
+        ${DC_L.map(l=>`<th style="${thS}width:58px">${l}</th>`).join('')}
+        <th style="${thS}width:64px;background:#1a3d1c">Ukupno</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
 }
 
 // ── PRIRAST ──
