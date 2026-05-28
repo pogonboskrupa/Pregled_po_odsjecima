@@ -1904,17 +1904,23 @@ function renderPrirast(){
   const maxV=data.filter(o=>o._pr).reduce((m,o)=>Math.max(m,o[sc]),0)||1;
   const tbody=document.getElementById('prirast-body');
   tbody.innerHTML='';
+  prExpandedKey=null;
 
   const nd='<td class="num" style="color:var(--border)">—</td>';
   data.forEach((o,i)=>{
     const p=o._pr;
+    const key=gk(o);
+    const safe=key.replace(/[^a-z0-9]/gi,'_');
     const accentCol=p?'var(--accent)':'var(--text-muted)';
     const medal=i<3?['🥇','🥈','🥉'][i]:(i+1)+'.';
     const dcCols=p
       ? p.dc.map(v=>`<td class="num" style="font-size:0.72rem;color:${v>0?'var(--accent)':'var(--text-muted)'};font-weight:${v>0?600:400}">${v>0?v.toFixed(3):'·'}</td>`).join('')
       : nd.repeat(7);
-    tbody.innerHTML+=`<tr>
-      <td class="rank-num">${medal}</td>
+
+    const tr=document.createElement('tr');
+    tr.className='clickable';
+    tr.innerHTML=`
+      <td class="rank-num">▶ ${medal}</td>
       <td class="gj">${o.gj}</td>
       <td class="code dim">${o.odjel}</td>
       <td class="code">${o.odsjek}</td>
@@ -1923,8 +1929,49 @@ function renderPrirast(){
       <td class="num" style="color:${accentCol};font-weight:${p?700:400}">${p?p.m3ha.toFixed(3):'—'}</td>
       <td class="num" style="color:${accentCol}">${p?o.pr_m3.toFixed(1):'—'}</td>
       ${dcCols}
-      <td class="num dim" style="color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</td>
-    </tr>`;
+      <td class="num dim" style="color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</td>`;
+    tr.addEventListener('click',()=>prToggleExpand(key,tr,o));
+    tbody.appendChild(tr);
+
+    const expTr=document.createElement('tr');
+    expTr.className='expand-row';
+    expTr.id='prexp-'+safe;
+    expTr.style.display='none';
+    const expTd=document.createElement('td');
+    expTd.colSpan=16;
+    expTr.appendChild(expTd);
+    tbody.appendChild(expTr);
+  });
+}
+
+let prExpandedKey=null;
+function prToggleExpand(key,tr,o){
+  const safe=key.replace(/[^a-z0-9]/gi,'_');
+  const expRow=document.getElementById('prexp-'+safe);
+  if(prExpandedKey===key){
+    prExpandedKey=null;
+    expRow.style.display='none';
+    tr.classList.remove('expanded');
+    tr.querySelector('td:first-child').textContent='▶ '+(tr.querySelector('td:first-child').textContent.replace(/^[▶▼]\s*/,''));
+  }else{
+    if(prExpandedKey){
+      const prev=document.getElementById('prexp-'+prExpandedKey.replace(/[^a-z0-9]/gi,'_'));
+      if(prev) prev.style.display='none';
+      tbody__pr_expanded_reset();
+    }
+    prExpandedKey=key;
+    tr.classList.add('expanded');
+    const rankTd=tr.querySelector('td:first-child');
+    rankTd.textContent=rankTd.textContent.replace(/^▶/,'▼');
+    expRow.querySelector('td').innerHTML=buildExpand(key,o);
+    expRow.style.display='';
+  }
+}
+function tbody__pr_expanded_reset(){
+  document.querySelectorAll('#prirast-body tr.expanded').forEach(r=>{
+    r.classList.remove('expanded');
+    const td=r.querySelector('td:first-child');
+    if(td) td.textContent=td.textContent.replace(/^▼/,'▶');
   });
 }
 
