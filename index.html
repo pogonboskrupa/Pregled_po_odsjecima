@@ -131,12 +131,12 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .exp-info-row .lbl{color:var(--text-muted);}
 .exp-info-row .val{font-weight:600;font-variant-numeric:tabular-nums;}
 .exp-dc{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px 14px;min-width:320px;flex:1;}
-.dc-chart{display:flex;gap:5px;align-items:flex-end;height:74px;}
+.dc-chart{display:flex;gap:5px;align-items:flex-end;}
 .dc-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .dc-bar-outer{width:100%;background:var(--border);border-radius:2px;position:relative;display:flex;align-items:flex-end;}
 .dc-bar-inner{width:100%;border-radius:2px;min-height:1px;}
-.dc-label{font-size:0.56rem;color:var(--text-muted);white-space:nowrap;}
-.dc-val{font-size:0.58rem;font-weight:700;font-variant-numeric:tabular-nums;}
+.dc-label{font-size:0.56rem;color:var(--text-muted);white-space:nowrap;margin-top:2px;}
+.dc-val{font-size:0.65rem;font-weight:700;font-variant-numeric:tabular-nums;min-height:0.9em;text-align:center;}
 .exp-vrste{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:10px 14px;min-width:380px;flex:2;}
 .species-row{display:flex;align-items:center;gap:9px;padding:5px 0;border-bottom:1px solid #f0ede8;}
 .species-row:last-child{border-bottom:none;}
@@ -1509,21 +1509,27 @@ function buildExpand(key,o){
   </div>`;
   const dcBars=o.dc.map((v,i)=>{
     const h=dcMax>0?Math.round((v/dcMax)*68):0;
-    return `<div class="dc-bar-wrap"><div class="dc-val" style="color:${m3c(v)}">${v>0?v.toFixed(0):''}</div>
+    return `<div class="dc-bar-wrap"><div class="dc-val" style="color:${m3c(v)}">${v>0?v.toFixed(1):'·'}</div>
       <div class="dc-bar-outer" style="height:68px"><div class="dc-bar-inner" style="height:${h}px;background:${m3c(v)}"></div></div>
       <div class="dc-label">${DC_LABELS[i]}</div></div>`;
   }).join('');
-  const dcBox=`<div class="exp-dc"><div class="exp-dc-title">Zaliha — debljinski razredi (m³/ha)</div><div class="dc-chart">${dcBars}</div></div>`;
+  const dcNumRow=`<div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">
+    ${o.dc.map((v,i)=>`<div style="text-align:center;font-size:0.62rem;"><div style="color:var(--text-muted);font-size:0.55rem">${DC_LABELS[i]}</div><div style="font-weight:700;font-variant-numeric:tabular-nums;color:${v>0?m3c(v):'var(--text-muted)'}">${v>0?v.toFixed(1):'0'}</div></div>`).join('')}
+  </div>`;
+  const dcBox=`<div class="exp-dc"><div class="exp-dc-title">Zaliha — debljinski razredi (m³/ha)</div><div class="dc-chart">${dcBars}</div>${dcNumRow}</div>`;
   let prDcBox='';
   if(pr){
     const prMax=Math.max(...pr.dc,0.001);
     const prBars=pr.dc.map((v,i)=>{
       const h=prMax>0?Math.round((v/prMax)*68):0;
       return `<div class="dc-bar-wrap">
-        <div class="dc-val" style="color:var(--accent)">${v>0?v.toFixed(2):''}</div>
+        <div class="dc-val" style="color:var(--accent)">${v>0?v.toFixed(2):'·'}</div>
         <div class="dc-bar-outer" style="height:68px"><div class="dc-bar-inner" style="height:${Math.max(h,v>0?2:0)}px;background:var(--accent);opacity:0.82"></div></div>
         <div class="dc-label">${DC_LABELS[i]}</div></div>`;
     }).join('');
+    const prNumRow=`<div style="margin-top:8px;border-top:1px solid rgba(44,95,46,0.2);padding-top:6px;display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">
+      ${pr.dc.map((v,i)=>`<div style="text-align:center;font-size:0.62rem;"><div style="color:var(--text-muted);font-size:0.55rem">${DC_LABELS[i]}</div><div style="font-weight:700;font-variant-numeric:tabular-nums;color:${v>0?'var(--accent)':'var(--text-muted)'}">${v>0?v.toFixed(2):'0'}</div></div>`).join('')}
+    </div>`;
     const srcKat=Math.floor(o.gazd_klasa/1000)*1000;
     prDcBox=`<div class="exp-dc" style="border-color:rgba(44,95,46,0.3);background:rgba(44,95,46,0.03)">
       <div class="exp-dc-title" style="color:var(--accent)">Prirast — debljinski razredi (m³/ha)
@@ -1532,7 +1538,8 @@ function buildExpand(key,o){
         </span>
       </div>
       <div class="dc-chart">${prBars}</div>
-      <div style="margin-top:6px;font-size:0.68rem;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap">
+      ${prNumRow}
+      <div style="margin-top:6px;font-size:0.68rem;color:var(--text-muted);display:flex;gap:12px;flex-wrap:wrap;border-top:1px solid rgba(44,95,46,0.15);padding-top:5px;">
         <span>Ukupno: <strong style="color:var(--accent)">${pr.m3ha.toFixed(2)} m³/ha</strong></span>
         <span>Ovaj odsjek (${o.povrsina.toFixed(1)} ha): <strong style="color:var(--accent)">${prM3est.toFixed(1)} m³/god</strong></span>
       </div>
