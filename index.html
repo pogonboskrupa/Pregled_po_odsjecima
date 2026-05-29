@@ -977,13 +977,14 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
               <option>PLJEŠEVICA</option><option>GATA</option><option>MUTNICA</option><option>KLADUŠNICA</option><option>GLINICA</option><option>GOMILA</option><option>BAŠTRA ĆORKOVAČA</option><option>VOJSKOVA</option><option>RISOVAC KRUPA</option><option>GRMEČ JASENICA</option><option>LJUTOČ KULEN VAKUF</option><option>RISOVAC BIHAĆ</option>
             </select>
           </div>
-          <div class="field-group" style="width:110px">
+          <div class="field-group" style="width:150px">
             <label>Broj odjela</label>
-            <input type="number" id="izv-od" placeholder="npr. 15" min="1" style="width:100%">
+            <input type="number" id="izv-od" placeholder="prazno = cijela GJ" min="1" style="width:100%">
           </div>
           <button class="btn" onclick="generateIzvjestaj()" style="margin-top:auto;background:var(--accent)">Generiši izvještaj</button>
           <button class="btn btn-secondary" onclick="printIzvjestaj()" style="margin-top:auto">🖨 Printaj / PDF</button>
         </div>
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:7px;">💡 Ostavi <strong>broj odjela prazan</strong> za izvještaj cijele gospodarske jedinice (svi odjeli + sažetak).</div>
       </div>
     </div>
   </div>
@@ -2948,15 +2949,92 @@ const IZV_GK_TIP = {
 };
 const IZV_GK_COL = {1:'#1a5e20',2:'#1a5e20',3:'#1565c0',4:'#6a1e00'};
 
+function izvOdsjekCard(o){
+  const tipKey=String(o.gazd_klasa)[0];
+  const tipName=IZV_GK_TIP[tipKey]||'Ostalo';
+  const tipCol=IZV_GK_COL[tipKey]||'var(--text-muted)';
+  const vrste=VRSTE_BY_KEY[gk(o)]||[];
+  const pr=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
+  const stab=(typeof STABALA!=='undefined')?
+    STABALA.find(s=>s.gj_br===o.gj_br&&s.od===parseInt(o.odjel)&&s.os===o.odsjek):null;
+  return izvBuildCard(o,tipName,tipCol,vrste,pr,stab);
+}
+
+// Sažetak za skup odsjeka (cijela GJ ili jedan odjel)
+function izvSummaryBox(odsjeci,title){
+  const ha=odsjeci.reduce((s,o)=>s+o.povrsina,0);
+  const m3=odsjeci.reduce((s,o)=>s+o.ukupno_m3,0);
+  const m3ha=ha>0?m3/ha:0;
+  let cet=0,lis=0;
+  odsjeci.forEach(o=>{(VRSTE_BY_KEY[gk(o)]||[]).forEach(v=>{ if(v.grupa==='Četinari')cet+=(v.m3||0);else lis+=(v.m3||0);});});
+  const cl=cet+lis, cp=cl>0?cet/cl*100:0;
+  const withZ=odsjeci.filter(o=>o.ukupno_m3ha>0).length;
+  // prirast: zbroj jedinstvenih GK u skupu
+  let pr=0; const seenGk=new Set();
+  odsjeci.forEach(o=>{
+    const k=o.gj_br+'_'+o.gazd_klasa;
+    if(!seenGk.has(k)){ seenGk.add(k);
+      const p=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
+      if(p) pr+=(p.m3||0);
+    }
+  });
+  return `<div class="izv-card" style="background:var(--surface)">
+    <div class="izv-card-hdr" style="border-left:4px solid var(--accent);background:var(--accent-pale)">
+      <span class="izv-odsjek-num">${title}</span>
+    </div>
+    <div class="izv-section">
+      <div class="izv-meta-row" style="gap:8px 26px">
+        <span class="izv-stat"><b>${odsjeci.length}</b> odsjeka <span style="color:var(--text-muted)">(${withZ} sa zalihom)</span></span>
+        <span class="izv-stat"><b>${ha.toFixed(1)}</b> ha</span>
+        <span class="izv-stat"><b>${m3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha</span>
+        <span class="izv-stat"><b>${m3ha.toFixed(1)}</b> m³/ha</span>
+        ${pr>0?`<span class="izv-stat"><b>${pr.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³/god prirast</span>`:''}
+        ${cl>0?`<span class="izv-stat">Čet/Liš: <b style="color:#2c5f2e">${cp.toFixed(0)}%</b> / <b style="color:#8b5e0a">${(100-cp).toFixed(0)}%</b></span>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
 function generateIzvjestaj(){
   const gjVal=document.getElementById('izv-gj').value.trim();
   const odRaw=document.getElementById('izv-od').value.trim();
   const status=document.getElementById('izv-status');
   const report=document.getElementById('izv-report');
 
-  if(!gjVal||!odRaw){status.textContent='Odaberite GJ i unesite broj odjela.';return;}
+  if(!gjVal){status.textContent='Odaberite gospodarsku jedinicu.';return;}
+
+  // ── REŽIM: CIJELA GJ ──
+  if(!odRaw){
+    const all=ODSJECI.filter(o=>o.gj===gjVal);
+    if(!all.length){status.textContent=`Nema podataka za GJ ${gjVal}.`;report.innerHTML='';return;}
+    all.sort((a,b)=>{const oa=parseInt(a.odjel)||0,ob=parseInt(b.odjel)||0;return oa!==ob?oa-ob:a.odsjek-b.odsjek;});
+    // grupiši po odjelu
+    const byOdjel={};
+    all.forEach(o=>{(byOdjel[o.odjel]=byOdjel[o.odjel]||[]).push(o);});
+    const odjeli=Object.keys(byOdjel).sort((a,b)=>(parseInt(a)||0)-(parseInt(b)||0));
+    const totPovr=all.reduce((s,o)=>s+o.povrsina,0);
+    const totM3=all.reduce((s,o)=>s+o.ukupno_m3,0);
+    status.textContent=`GJ ${gjVal} · CIJELA GJ · ${odjeli.length} odjela · ${all.length} odsjeka · ${totPovr.toFixed(1)} ha · ${totM3.toLocaleString('bs',{maximumFractionDigits:0})} m³`;
+
+    let html=`<div class="izv-odjel-hdr">GJ ${gjVal} &middot; CIJELA GOSPODARSKA JEDINICA
+      <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);margin-left:14px">${odjeli.length} odjela &middot; ${all.length} odsjeka</span>
+    </div>`;
+    html+=izvSummaryBox(all,'Sažetak gospodarske jedinice');
+    odjeli.forEach(od=>{
+      const arr=byOdjel[od];
+      html+=`<div class="izv-odjel-hdr" style="font-size:0.92rem;margin-top:18px">Odjel ${parseInt(od)}
+        <span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);margin-left:12px">${arr.length} odsjeka &middot; ${arr.reduce((s,o)=>s+o.povrsina,0).toFixed(1)} ha</span>
+      </div>`;
+      arr.forEach(o=>{ html+=izvOdsjekCard(o); });
+    });
+    report.innerHTML=html;
+    report.scrollTop=0;
+    return;
+  }
+
+  // ── REŽIM: JEDAN ODJEL ──
   const odInt=parseInt(odRaw);
-  if(isNaN(odInt)||odInt<1){status.textContent='Unesite ispravan broj odjela.';return;}
+  if(isNaN(odInt)||odInt<1){status.textContent='Unesite ispravan broj odjela (ili ostavite prazno za cijelu GJ).';return;}
   const odPad=String(odInt).padStart(3,'0');
 
   const odsjeci=[...ODSJECI.filter(o=>o.gj===gjVal&&o.odjel===odPad)];
@@ -2974,19 +3052,11 @@ function generateIzvjestaj(){
   let html=`<div class="izv-odjel-hdr">GJ ${gjVal} &middot; ODJEL ${odInt}
     <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);margin-left:14px">${odsjeci.length} odsjeka &middot; ${totPovr.toFixed(1)} ha${totM3>0?' &middot; '+totM3.toFixed(0)+' m³':''}</span>
   </div>`;
-
-  odsjeci.forEach(o=>{
-    const tipKey=String(o.gazd_klasa)[0];
-    const tipName=IZV_GK_TIP[tipKey]||'Ostalo';
-    const tipCol=IZV_GK_COL[tipKey]||'var(--text-muted)';
-    const vrste=VRSTE_BY_KEY[gk(o)]||[];
-    const pr=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
-    const stab=(typeof STABALA!=='undefined')?
-      STABALA.find(s=>s.gj_br===o.gj_br&&s.od===parseInt(o.odjel)&&s.os===o.odsjek):null;
-    html+=izvBuildCard(o,tipName,tipCol,vrste,pr,stab);
-  });
+  html+=izvSummaryBox(odsjeci,`Sažetak odjela ${odInt}`);
+  odsjeci.forEach(o=>{ html+=izvOdsjekCard(o); });
 
   report.innerHTML=html;
+  report.scrollTop=0;
 }
 
 function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
@@ -3122,13 +3192,15 @@ function printIzvjestaj(){
   if(!report.innerHTML.trim()){alert('Generiši izvještaj pa tek onda printaj.');return;}
   const gjVal=document.getElementById('izv-gj').value;
   const odVal=document.getElementById('izv-od').value.trim();
+  const scopeLabel=odVal?('Odjel '+(parseInt(odVal)||odVal)):'Cijela gospodarska jedinica';
+  const subTitle=odVal?'Izvještaj po odjelu':'Izvještaj po gospodarskoj jedinici';
   const datum=new Date().toLocaleDateString('bs-BA');
 
   const win=window.open('','_blank','width=960,height=760');
   if(!win){alert('Preglednik blokira iskočne prozore. Dozvoli ih za ovaj sajt i pokušaj ponovo.');return;}
   win.document.write(`<!DOCTYPE html><html lang="bs"><head>
   <meta charset="utf-8">
-  <title>Izvještaj – GJ ${gjVal} – Odjel ${parseInt(odVal)||odVal}</title>
+  <title>Izvještaj – GJ ${gjVal} – ${scopeLabel}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#111;background:#fff;padding:14mm 16mm 14mm;}
@@ -3158,8 +3230,8 @@ function printIzvjestaj(){
   <div class="print-head">
     <div class="print-head-left">
       <div class="co">ŠPD "Unsko-Sanske Šume" DOO Bosanska Krupa</div>
-      <h1>Izvještaj po odjelu</h1>
-      <h2>GJ ${gjVal} &middot; Odjel ${parseInt(odVal)||odVal}</h2>
+      <h1>${subTitle}</h1>
+      <h2>GJ ${gjVal} &middot; ${scopeLabel}</h2>
     </div>
     <div class="print-head-right">Datum: ${datum}<br>Elaborat drvne mase</div>
   </div>
