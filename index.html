@@ -461,6 +461,36 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .izv-tbl th:first-child,.izv-tbl td:first-child{text-align:left;}
 .izv-tbl tbody tr:hover{background:rgba(255,255,255,0.03);}
 .izv-tbl tbody tr.izv-total{font-weight:800;border-top:2px solid var(--border);background:var(--surface);}
+/* ── DASHBOARD ── */
+.dash-section-title{font-family:var(--serif);font-size:1rem;font-weight:600;color:var(--accent);margin:22px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--accent-mid);display:flex;align-items:center;gap:8px;}
+.dash-section-title:first-child{margin-top:0;}
+.dash-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:6px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:13px 15px;box-shadow:0 1px 3px rgba(0,0,0,0.05);border-left:4px solid var(--accent);}
+.kpi-card.alt{border-left-color:var(--lišćari);}
+.kpi-card.blue{border-left-color:#1565c0;}
+.kpi-card.gray{border-left-color:var(--text-muted);}
+.kpi-val{font-family:var(--serif);font-size:1.55rem;font-weight:700;color:var(--text);line-height:1.1;font-variant-numeric:tabular-nums;}
+.kpi-unit{font-size:0.78rem;font-weight:600;color:var(--text-muted);margin-left:3px;}
+.kpi-lbl{font-size:0.66rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:700;margin-top:5px;}
+.kpi-sub{font-size:0.68rem;color:var(--text-dim);margin-top:3px;}
+.dash-grid{display:grid;grid-template-columns:minmax(220px,1fr) minmax(320px,1.6fr);gap:16px;align-items:start;}
+.dash-panel{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.dash-panel h4{font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:700;margin-bottom:12px;}
+.donut-wrap{display:flex;flex-direction:column;align-items:center;gap:12px;}
+.donut-legend{display:flex;flex-direction:column;gap:6px;width:100%;}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:0.76rem;}
+.donut-legend-item .dot{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+.donut-legend-item .lg-val{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;}
+.dash-tbl{width:100%;border-collapse:collapse;font-size:0.74rem;}
+.dash-tbl th{background:var(--accent);color:rgba(255,255,255,0.92);padding:7px 9px;text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;position:sticky;top:0;}
+.dash-tbl th:first-child{text-align:left;border-radius:5px 0 0 0;}
+.dash-tbl th:last-child{border-radius:0 5px 0 0;}
+.dash-tbl td{padding:6px 9px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.dash-tbl td:first-child{text-align:left;font-weight:700;}
+.dash-tbl tbody tr:hover{background:var(--accent-pale);cursor:pointer;}
+.dash-tbl tr.dash-total td{font-weight:800;border-top:2px solid var(--border-strong);background:var(--surface2);}
+.minibar{display:inline-block;height:8px;border-radius:2px;vertical-align:middle;margin-left:6px;}
+@media (max-width:760px){.dash-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -573,7 +603,8 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 <div class="breadcrumb">Elaborat &rsaquo; <span>Drvna masa po odsjecima</span></div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('search')">Pretraga odsjeka</div>
+  <div class="tab active" onclick="switchTab('pregled')">📊 Pregled</div>
+  <div class="tab" onclick="switchTab('search')">Pretraga odsjeka</div>
   <div class="tab" onclick="switchTab('vrste')">Rangiranje po vrsti</div>
   <div class="tab" onclick="switchTab('zaliha')">Rangiranje po zalihi</div>
   <div class="tab" onclick="switchTab('sjekored')">Sjekored</div>
@@ -590,8 +621,15 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 
 <div class="app-body">
 
+<!-- ===== PREGLED (DASHBOARD) ===== -->
+<div class="panel active" id="panel-pregled">
+  <div style="flex:1;overflow-y:auto;min-height:0;padding:16px 20px 30px;">
+    <div id="dash-content"></div>
+  </div>
+</div>
+
 <!-- ===== SEARCH ===== -->
-<div class="panel active" id="panel-search">
+<div class="panel" id="panel-search">
   <div class="panel-inner">
     <div class="filter-card" id="fc-search">
       <div class="filter-card-title" onclick="toggleFilterCard('fc-search')">
@@ -1393,13 +1431,14 @@ document.getElementById('hdr-m3').textContent=Math.round(totalM3).toLocaleString
 document.getElementById('hdr-ha').textContent=Math.round(totalHa).toLocaleString('bs')+' ha';
 
 // ── TABS ──
-const TAB_NAMES=['search','vrste','zaliha','sjekored','prirast','stabla','izvjestaj'];
+const TAB_NAMES=['pregled','search','vrste','zaliha','sjekored','prirast','stabla','izvjestaj'];
 function switchTab(n){
   TAB_NAMES.forEach((t,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',t===n);
     document.getElementById('panel-'+t).classList.toggle('active',t===n);
   });
   document.getElementById('sj-subtabs').classList.toggle('visible',n==='sjekored');
+  if(n==='pregled') renderPregled();
   if(n==='prirast') renderPrirast();
   if(n==='stabla') renderStabala();
   updateHash();
@@ -2729,6 +2768,178 @@ function buildExpandStabala(r){
 }
 renderStabala();
 
+// ── DASHBOARD (PREGLED) ───────────────────────────────────────────────────
+const GJ_ORDER=['PLJEŠEVICA','GATA','MUTNICA','KLADUŠNICA','GLINICA','GOMILA','BAŠTRA ĆORKOVAČA','VOJSKOVA','RISOVAC KRUPA','GRMEČ JASENICA','LJUTOČ KULEN VAKUF','RISOVAC BIHAĆ'];
+
+function dashComputeStats(){
+  const byGj={};
+  ODSJECI.forEach(o=>{
+    let s=byGj[o.gj];
+    if(!s){s=byGj[o.gj]={gj:o.gj,gj_br:o.gj_br,odsjeci:0,ha:0,m3:0,cet_m3:0,lis_m3:0,withZaliha:0};}
+    s.odsjeci++; s.ha+=o.povrsina; s.m3+=o.ukupno_m3;
+    if(o.ukupno_m3ha>0) s.withZaliha++;
+    const vrste=VRSTE_BY_KEY[gk(o)]||[];
+    vrste.forEach(v=>{ if(v.grupa==='Četinari') s.cet_m3+=(v.m3||0); else s.lis_m3+=(v.m3||0); });
+  });
+  Object.values(byGj).forEach(s=>{
+    let pr=0;
+    if(typeof PRIRAST!=='undefined'&&PRIRAST[s.gj_br]){
+      Object.values(PRIRAST[s.gj_br]).forEach(g=>{ pr+=(g.m3||0); });
+    }
+    s.prirast_m3=pr;
+    s.m3ha=s.ha>0?s.m3/s.ha:0;
+  });
+  const list=GJ_ORDER.filter(g=>byGj[g]).map(g=>byGj[g]);
+  // ostale GJ koje nisu u redoslijedu (sigurnosno)
+  Object.keys(byGj).forEach(g=>{ if(!GJ_ORDER.includes(g)) list.push(byGj[g]); });
+  const tot={odsjeci:0,ha:0,m3:0,cet_m3:0,lis_m3:0,prirast_m3:0,withZaliha:0};
+  list.forEach(s=>{['odsjeci','ha','m3','cet_m3','lis_m3','prirast_m3','withZaliha'].forEach(k=>tot[k]+=s[k]);});
+  tot.m3ha=tot.ha>0?tot.m3/tot.ha:0;
+  return {list,tot};
+}
+
+// SVG donut chart
+function svgDonut(segments,size,thickness){
+  size=size||150; thickness=thickness||30;
+  const total=segments.reduce((s,x)=>s+x.value,0)||1;
+  const r=(size-thickness)/2, cx=size/2, cy=size/2;
+  let a0=-Math.PI/2, paths='';
+  segments.forEach(seg=>{
+    const frac=seg.value/total;
+    if(frac<=0) return;
+    let a1=a0+frac*2*Math.PI;
+    if(frac>=0.9999){ // pun krug
+      paths+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${thickness}"/>`;
+      a0=a1; return;
+    }
+    const x0=cx+r*Math.cos(a0), y0=cy+r*Math.sin(a0);
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const large=frac>0.5?1:0;
+    paths+=`<path d="M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}" fill="none" stroke="${seg.color}" stroke-width="${thickness}" stroke-linecap="butt"/>`;
+    a0=a1;
+  });
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" style="display:block">${paths}</svg>`;
+}
+
+// SVG horizontal bars
+function svgHBars(items,opts){
+  opts=opts||{};
+  const w=opts.width||560, barH=opts.barH||20, gap=opts.gap||9, labelW=opts.labelW||130, valW=opts.valW||78;
+  const max=Math.max(...items.map(i=>i.value),0.0001);
+  const chartW=w-labelW-valW;
+  const h=items.length*(barH+gap)+4;
+  let rows='';
+  items.forEach((it,i)=>{
+    const y=i*(barH+gap)+2;
+    const bw=Math.max(it.value>0?2:0,(it.value/max)*chartW);
+    rows+=`<text x="${labelW-8}" y="${y+barH/2}" text-anchor="end" dominant-baseline="central" font-size="11" font-weight="600" fill="#4a4840">${it.label}</text>`;
+    rows+=`<rect x="${labelW}" y="${y}" width="${bw.toFixed(1)}" height="${barH}" rx="2" fill="${it.color||'#2c5f2e'}"/>`;
+    rows+=`<text x="${labelW+bw+6}" y="${y+barH/2}" dominant-baseline="central" font-size="11" font-weight="700" fill="#1a1a18">${it.valLabel}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;max-width:${w}px">${rows}</svg>`;
+}
+
+const fmt0=v=>Math.round(v).toLocaleString('bs');
+const fmt1=v=>v.toLocaleString('bs',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+let dashStatsCache=null;
+function renderPregled(){
+  const el=document.getElementById('dash-content');
+  if(!el) return;
+  if(!dashStatsCache) dashStatsCache=dashComputeStats();
+  const {list,tot}=dashStatsCache;
+  const cetPct=tot.cet_m3+tot.lis_m3>0?(tot.cet_m3/(tot.cet_m3+tot.lis_m3)*100):0;
+
+  // ── KPI kartice ──
+  let kpis=`<div class="dash-kpis">
+    <div class="kpi-card"><div class="kpi-val">${fmt0(tot.m3/1000)}<span class="kpi-unit">hilj. m³</span></div><div class="kpi-lbl">Ukupna drvna zaliha</div><div class="kpi-sub">${fmt0(tot.m3)} m³</div></div>
+    <div class="kpi-card blue"><div class="kpi-val">${fmt1(tot.m3ha)}<span class="kpi-unit">m³/ha</span></div><div class="kpi-lbl">Prosječna zaliha</div><div class="kpi-sub">ponderisano po površini</div></div>
+    <div class="kpi-card alt"><div class="kpi-val">${fmt0(tot.prirast_m3)}<span class="kpi-unit">m³/god</span></div><div class="kpi-lbl">Ukupni zapreminski prirast</div><div class="kpi-sub">zbroj po gazdinskim klasama</div></div>
+    <div class="kpi-card gray"><div class="kpi-val">${fmt0(tot.ha)}<span class="kpi-unit">ha</span></div><div class="kpi-lbl">Ukupna površina</div><div class="kpi-sub">${list.length} GJ · ${fmt0(tot.odsjeci)} odsjeka</div></div>
+  </div>`;
+
+  // ── Donut omjer Č/L ──
+  const donutSegs=[{label:'Četinari',value:tot.cet_m3,color:'#2c5f2e'},{label:'Lišćari',value:tot.lis_m3,color:'#8b5e0a'}];
+  const totCL=tot.cet_m3+tot.lis_m3;
+  const donut=`<div class="dash-panel">
+    <h4>Omjer vrsta (po zalihi m³)</h4>
+    <div class="donut-wrap">
+      <div style="position:relative;width:150px;height:150px">
+        ${svgDonut(donutSegs,150,32)}
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none">
+          <div style="font-family:var(--serif);font-size:1.25rem;font-weight:700;color:var(--accent)">${cetPct.toFixed(0)}%</div>
+          <div style="font-size:0.58rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);font-weight:700">četinari</div>
+        </div>
+      </div>
+      <div class="donut-legend">
+        <div class="donut-legend-item"><span class="dot" style="background:#2c5f2e"></span>Četinari<span class="lg-val">${fmt0(tot.cet_m3)} m³ · ${(totCL>0?tot.cet_m3/totCL*100:0).toFixed(1)}%</span></div>
+        <div class="donut-legend-item"><span class="dot" style="background:#8b5e0a"></span>Lišćari<span class="lg-val">${fmt0(tot.lis_m3)} m³ · ${(totCL>0?tot.lis_m3/totCL*100:0).toFixed(1)}%</span></div>
+      </div>
+    </div>
+  </div>`;
+
+  // ── Bar chart GJ po zalihi m³ ──
+  const barItems=[...list].sort((a,b)=>b.m3-a.m3).map(s=>({
+    label:s.gj.length>16?s.gj.slice(0,15)+'…':s.gj,
+    value:s.m3, color:'#2c5f2e', valLabel:fmt0(s.m3/1000)+' hilj.'
+  }));
+  const bars=`<div class="dash-panel">
+    <h4>Drvna zaliha po gospodarskoj jedinici (hilj. m³)</h4>
+    ${svgHBars(barItems,{width:600,labelW:135,valW:80})}
+  </div>`;
+
+  // ── Tabela po GJ ──
+  const maxM3ha=Math.max(...list.map(s=>s.m3ha),1);
+  let tblRows='';
+  list.forEach(s=>{
+    const clTot=s.cet_m3+s.lis_m3;
+    const cp=clTot>0?s.cet_m3/clTot*100:0;
+    const barW=(s.m3ha/maxM3ha*60).toFixed(0);
+    tblRows+=`<tr onclick="dashGoToGj('${s.gj.replace(/'/g,"\\'")}')">
+      <td>${s.gj}</td>
+      <td>${s.odsjeci}</td>
+      <td>${fmt1(s.ha)}</td>
+      <td>${fmt0(s.m3)}</td>
+      <td style="color:${m3c(s.m3ha)};font-weight:700">${fmt1(s.m3ha)}<span class="minibar" style="width:${barW}px;background:${m3c(s.m3ha)}"></span></td>
+      <td>${s.prirast_m3>0?fmt0(s.prirast_m3):'—'}</td>
+      <td style="color:#2c5f2e;font-weight:700">${cp.toFixed(0)}%</td>
+      <td style="color:#8b5e0a;font-weight:700">${(100-cp).toFixed(0)}%</td>
+    </tr>`;
+  });
+  const cpTot=totCL>0?tot.cet_m3/totCL*100:0;
+  tblRows+=`<tr class="dash-total">
+    <td>UKUPNO</td><td>${fmt0(tot.odsjeci)}</td><td>${fmt1(tot.ha)}</td><td>${fmt0(tot.m3)}</td>
+    <td style="color:${m3c(tot.m3ha)}">${fmt1(tot.m3ha)}</td><td>${fmt0(tot.prirast_m3)}</td>
+    <td style="color:#2c5f2e">${cpTot.toFixed(0)}%</td><td style="color:#8b5e0a">${(100-cpTot).toFixed(0)}%</td>
+  </tr>`;
+  const tbl=`<div class="dash-panel" style="padding:0;overflow:hidden">
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+    <table class="dash-tbl">
+      <thead><tr>
+        <th>Gospodarska jedinica</th><th>Odsjeka</th><th>Površina ha</th>
+        <th>Zaliha m³</th><th>m³/ha</th><th>Prirast m³/god</th><th>Čet.</th><th>Liš.</th>
+      </tr></thead>
+      <tbody>${tblRows}</tbody>
+    </table>
+    </div>
+  </div>`;
+
+  el.innerHTML=`
+    <div class="dash-section-title">🌲 Sumarni pregled — ŠPD "Unsko-Sanske Šume"</div>
+    ${kpis}
+    <div class="dash-section-title">Vizualni pregled</div>
+    <div class="dash-grid">${donut}${bars}</div>
+    <div class="dash-section-title">Detaljno po gospodarskim jedinicama</div>
+    ${tbl}
+  `;
+}
+
+function dashGoToGj(gj){
+  switchTab('zaliha');
+  const sel=document.getElementById('z-gj');
+  if(sel){ sel.value=gj; renderZaliha(); }
+}
+
 // ── IZVJEŠTAJ ─────────────────────────────────────────────────────────────
 const IZV_DC = ['0–5','6–10','11–20','21–30','31–50','51–80','>80'];
 const IZV_GK_TIP = {
@@ -2963,6 +3174,9 @@ function printIzvjestaj(){
   </body></html>`);
   win.document.close();
 }
+
+// Inicijalni render dashboarda (STABALA i PRIRAST su sada dostupni)
+renderPregled();
 </script>
 </body>
 </html>
