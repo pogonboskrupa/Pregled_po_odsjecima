@@ -1544,30 +1544,63 @@ function buildExpand(key,o){
       </div>
     </div>`;
   }
-  const vrsteRows=!sorted.length?'<div style="color:var(--text-muted);font-size:0.75rem;font-style:italic">Nema podataka o vrstama.</div>'
-    :sorted.map(v=>{
-      const badge=v.grupa==='Četinari'?'badge-č':'badge-l';
-      const col=v.grupa==='Četinari'?'var(--četinari)':'var(--lišćari)';
-      const dcM=Math.max(...v.dc,0.01);
-      const miniBars=v.dc.map(d=>`<div class="sp-dc-bar" style="height:${dcM>0?Math.max(Math.round(d/dcM*18),d>0?1:0):0}px;background:${col};opacity:0.7"></div>`).join('');
-      // Prirast per species — proportion of each DC class
-      let spPrM3ha=0;
-      if(pr){
-        pr.dc.forEach((prV,j)=>{
-          const totJ=o.dc[j]||0;
-          if(totJ>0) spPrM3ha+=prV*(v.dc[j]/totJ);
-        });
-      }
-      const spPrM3=spPrM3ha*o.povrsina;
-      const prBadge=pr&&spPrM3ha>0
-        ?`<span style="font-size:0.68rem;color:var(--accent);font-weight:700;margin-left:auto;padding-left:10px;white-space:nowrap">▲ ${spPrM3ha.toFixed(2)} m³/ha&nbsp;&nbsp;<span style="font-weight:400;color:var(--text-muted)">${spPrM3.toFixed(1)} m³/god</span></span>`
-        :'';
-      return `<div class="species-row"><div class="sp-name">${v.naziv}</div>
-        <div class="sp-badges"><span class="badge ${badge}">${v.grupa}</span><span style="font-size:0.68rem;color:var(--text-muted)">${v.omjer}%</span><span style="font-size:0.68rem;color:var(--text-muted)">Bon.${v.bonitet||'—'}</span></div>
-        <div class="sp-dc-mini">${miniBars}</div>
-        <div class="sp-m3ha" style="color:${col}">${v.m3ha.toFixed(2)} m³/ha</div>${prBadge}</div>`;
-    }).join('');
-  const vrsteBox=`<div class="exp-vrste"><div class="exp-vrste-title">Vrste drveta (${sorted.length})${pr?'&nbsp;·&nbsp;<span style="font-size:0.6rem;color:var(--accent);font-weight:400">▲ prirast po vrsti (proporcionalno)</span>':''}</div>${vrsteRows}</div>`;
+  const thS='background:#1a3d6a;color:rgba(255,255,255,0.88);padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;text-align:right;';
+  const thLS=thS+'text-align:left;';
+  const tdS='padding:5px 8px;font-size:0.76rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;';
+  const tdLS=tdS+'text-align:left;font-weight:700;';
+  const hasPr=!!pr;
+  const DC_L2=['0–5','6–10','11–20','21–30','31–50','51–80','&gt;80'];
+
+  let vrsteTableRows='';
+  sorted.forEach(v=>{
+    const col=v.grupa==='Četinari'?'var(--četinari)':'var(--lišćari)';
+    const dcCells=v.dc.map(d=>
+      `<td style="${tdS}color:${d>0?m3c(d):'var(--text-muted)'};font-weight:${d>0?600:400}">${d>0?d.toFixed(2):'·'}</td>`
+    ).join('');
+    let spPrM3ha=0;
+    if(pr){ pr.dc.forEach((prV,j)=>{ const totJ=o.dc[j]||0; if(totJ>0) spPrM3ha+=prV*(v.dc[j]/totJ); }); }
+    const prCell=hasPr?`<td style="${tdS}color:${spPrM3ha>0?'var(--accent)':'var(--text-muted)'};font-weight:${spPrM3ha>0?700:400}">${spPrM3ha>0?spPrM3ha.toFixed(2):'—'}</td>`:'';
+    vrsteTableRows+=`<tr>
+      <td style="${tdLS}color:${col}">${v.naziv}</td>
+      <td style="${tdS}color:var(--text-muted);font-size:0.68rem">${v.omjer}%</td>
+      <td style="${tdS}color:var(--text-muted);font-size:0.68rem">${v.bonitet||'—'}</td>
+      ${dcCells}
+      <td style="${tdS}color:${m3c(v.m3ha)};font-weight:700">${v.m3ha.toFixed(2)}</td>
+      ${prCell}
+    </tr>`;
+  });
+  // Totals row
+  const totDcCells=o.dc.map(d=>
+    `<td style="${tdS}background:#f0f4f0;font-weight:700;color:${d>0?m3c(d):'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`
+  ).join('');
+  const totPrCell=hasPr?`<td style="${tdS}background:#f0f4f0;font-weight:800;color:var(--accent)">${pr.m3ha.toFixed(2)}</td>`:'';
+  vrsteTableRows+=`<tr>
+    <td style="${tdLS}background:#f0f4f0;font-size:0.68rem;color:var(--text-muted)" colspan="2">Ukupno odsjek ${o.odjel}/${o.odsjek}</td>
+    <td style="${tdS}background:#f0f4f0"></td>
+    ${totDcCells}
+    <td style="${tdS}background:#f0f4f0;font-weight:800;color:${m3c(o.ukupno_m3ha)}">${o.ukupno_m3ha.toFixed(2)}</td>
+    ${totPrCell}
+  </tr>`;
+
+  const prHeader=hasPr?`<th style="${thS}width:72px;background:#1a5e20">▲ Prirast<br>m³/ha</th>`:'';
+  const vrsteBox=sorted.length===0
+    ?`<div class="exp-vrste"><div class="exp-vrste-title">Vrste drveta</div><div style="color:var(--text-muted);font-size:0.75rem;font-style:italic;padding:6px 0">Nema podataka o vrstama.</div></div>`
+    :`<div class="exp-vrste" style="overflow-x:auto;min-width:0;flex:3;">
+      <div class="exp-vrste-title">Zaliha po vrstama drveta (${sorted.length})${hasPr?'&nbsp;·&nbsp;<span style="font-size:0.6rem;color:var(--accent);font-weight:400">▲ prirast proporcionalno po DC</span>':''}</div>
+      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+        <table style="border-collapse:collapse;font-family:var(--mono);width:100%">
+          <thead><tr>
+            <th style="${thLS}min-width:140px">Vrsta drveta</th>
+            <th style="${thS}width:46px">%</th>
+            <th style="${thS}width:36px">Bon.</th>
+            ${DC_L2.map(l=>`<th style="${thS}width:54px">${l}</th>`).join('')}
+            <th style="${thS}width:68px;background:#0d3055">Zaliha<br>m³/ha</th>
+            ${prHeader}
+          </tr></thead>
+          <tbody>${vrsteTableRows}</tbody>
+        </table>
+      </div>
+    </div>`;
   return `<div class="expand-panel">${infoBox}${dcBox}${prDcBox}${vrsteBox}</div>`;
 }
 function clearSearch(){
