@@ -591,6 +591,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   </div>
   <div class="header-actions">
     <button class="hbtn" onclick="exportCSV()" title="Izvezi CSV">⬇ <span>CSV</span></button>
+    <button class="hbtn" onclick="exportXLS()" title="Izvezi Excel">⬇ <span>Excel</span></button>
     <button class="hbtn" onclick="printView()" title="Štampaj">🖨 <span>Print</span></button>
     <button class="hbtn hbtn-install" onclick="pwaInstall()" title="Instaliraj na uređaj">📲 <span>Instaliraj</span></button>
   </div>
@@ -655,11 +656,31 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
         <div class="field-group" style="width:105px"><label>Max. površina (ha)</label><input type="number" id="s-ha-max" placeholder="∞" min="0" oninput="applyFilters()"></div>
         <label class="toggle-chip" id="chip-10ha" onclick="toggleMin10()"><span id="chip-icon">◆</span> ≥ 10 ha</label>
       </div>
+      <div class="filter-row">
+        <div class="field-group" style="width:170px"><label>Tip gazdinske klase</label>
+          <select id="s-tip" onchange="applyFilters()">
+            <option value="">— Svi tipovi —</option>
+            <option value="1">Visoka šuma (1xxx)</option>
+            <option value="3">Kultura (3xxx)</option>
+            <option value="4">Izdanačka šuma (4xxx)</option>
+            <option value="5">Neplodne (5xxx)</option>
+          </select>
+        </div>
+        <div class="field-group" style="width:200px"><label>Sadrži vrstu drveta</label>
+          <select id="s-vrsta" onchange="applyFilters()"><option value="">— Sve vrste —</option></select>
+        </div>
+        <div class="field-group" style="width:115px"><label>Min. zaliha m³/ha</label><input type="number" id="s-m3-min" placeholder="0" min="0" oninput="applyFilters()"></div>
+        <div class="filter-sep" style="padding-bottom:5px">—</div>
+        <div class="field-group" style="width:115px"><label>Max. zaliha m³/ha</label><input type="number" id="s-m3-max" placeholder="∞" min="0" oninput="applyFilters()"></div>
+      </div>
       </div>
     </div>
     <div class="results-bar">
       <div class="results-meta" id="search-meta"></div>
-      <button class="btn-export" onclick="exportCSV()">⬇ Izvezi CSV</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn-export" onclick="exportXLS()">⬇ Excel</button>
+      </div>
     </div>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
@@ -755,7 +776,10 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
     </div>
     <div class="results-bar">
       <div class="results-meta" id="zaliha-meta"></div>
-      <button class="btn-export" onclick="exportCSV()">⬇ Izvezi CSV</button>
+      <div style="display:flex;gap:7px">
+        <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+        <button class="btn-export" onclick="exportXLS()">⬇ Excel</button>
+      </div>
     </div>
   </div>
   <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
@@ -1512,6 +1536,51 @@ function exportCSV(){
   showToast('CSV preuzet: '+filename+'.csv');
 }
 
+// \u2500\u2500 EXCEL EXPORT (SpreadsheetML 2003, otvara se u Excel/LibreOffice) \u2500\u2500
+function exportData(){
+  const tab=TAB_NAMES.find((_,i)=>document.querySelectorAll('.tab')[i].classList.contains('active'));
+  if(tab==='search'||tab==='zaliha'){
+    return {
+      headers:['GJ','Odjel','Odsjek','Povr\u0161ina (ha)','Gazd. klasa','Sklop (%)','m\u00B3/ha','Ukupno (m\u00B3)','Rel. gre\u0161ka (%)'],
+      rows:(tab==='search'?sData:zCurrent).map(o=>[o.gj,o.odjel,o.odsjek,o.povrsina,o.gazd_klasa||'',o.sklop||'',o.ukupno_m3ha,o.ukupno_m3,o.rel_greska]),
+      numericIdx:[3,4,5,6,7,8],
+      filename:tab==='search'?'pretraga_odsjeka':'rangiranje_zalihe',
+      sheet:tab==='search'?'Pretraga':'Zaliha'
+    };
+  } else if(tab==='vrste'){
+    return {
+      headers:['GJ','Odjel','Odsjek','Povr\u0161ina (ha)','Vrsta','Omjer (%)','Bonitet','m\u00B3/ha (vrsta)'],
+      rows:vData.map(o=>[o.gj,o.odjel,o.odsjek,o.povrsina,o.v_naziv||'',o.v_omjer,o.v_bonitet||'',o.v_m3ha]),
+      numericIdx:[3,5,6,7],
+      filename:'rangiranje_po_vrsti', sheet:'Po vrsti'
+    };
+  }
+  return null;
+}
+function exportXLS(){
+  const d=exportData();
+  if(!d){ showToast('Excel export nije dostupan za ovaj prikaz.'); return; }
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const cell=(v,i)=>{
+    const num=d.numericIdx.includes(i)&&v!==''&&v!=null&&!isNaN(v);
+    return num?`<Cell><Data ss:Type="Number">${v}</Data></Cell>`
+              :`<Cell><Data ss:Type="String">${esc(v==null?'':v)}</Data></Cell>`;
+  };
+  const head=`<Row>${d.headers.map(h=>`<Cell ss:StyleID="h"><Data ss:Type="String">${esc(h)}</Data></Cell>`).join('')}</Row>`;
+  const body=d.rows.map(r=>`<Row>${r.map((v,i)=>cell(v,i)).join('')}</Row>`).join('');
+  const xml=`<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+<Styles><Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#2C5F2E" ss:Pattern="Solid"/></Style></Styles>
+<Worksheet ss:Name="${esc(d.sheet)}"><Table>${head}${body}</Table></Worksheet>
+</Workbook>`;
+  const blob=new Blob(['\uFEFF'+xml],{type:'application/vnd.ms-excel;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=d.filename+'.xls'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Excel preuzet: '+d.filename+'.xls ('+d.rows.length+' redova)');
+}
+
 // ── PRINT ──
 function printView(){
   const tab=TAB_NAMES.find((_,i)=>document.querySelectorAll('.tab')[i].classList.contains('active'));
@@ -1530,6 +1599,10 @@ function applyFilters(){
   const os=document.getElementById('s-odsjek').value.trim();
   const mn=parseFloat(document.getElementById('s-ha-min').value)||0;
   const mx=parseFloat(document.getElementById('s-ha-max').value)||Infinity;
+  const tip=document.getElementById('s-tip').value;
+  const vrsta=document.getElementById('s-vrsta').value;
+  const m3mn=parseFloat(document.getElementById('s-m3-min').value)||0;
+  const m3mx=parseFloat(document.getElementById('s-m3-max').value)||Infinity;
   sData=ODSJECI.filter(o=>{
     if(gj&&o.gj!==gj)return false;
     if(od&&!o.odjel.toLowerCase().includes(od))return false;
@@ -1537,6 +1610,13 @@ function applyFilters(){
     if(min10&&o.povrsina<10)return false;
     if(o.povrsina<mn)return false;
     if(mx<Infinity&&o.povrsina>mx)return false;
+    if(tip&&String(o.gazd_klasa)[0]!==tip)return false;
+    if(o.ukupno_m3ha<m3mn)return false;
+    if(m3mx<Infinity&&o.ukupno_m3ha>m3mx)return false;
+    if(vrsta){
+      const vrste=VRSTE_BY_KEY[gk(o)]||[];
+      if(!vrste.some(v=>v.naziv===vrsta))return false;
+    }
     return true;
   });
   sPage=0;sortAndRender();updateHash();
@@ -1759,7 +1839,7 @@ function buildExpand(key,o){
   return `<div class="expand-panel">${infoBox}${dcBox}${prDcBox}${vrsteBox}</div>`;
 }
 function clearSearch(){
-  ['s-gj','s-odjel','s-odsjek','s-ha-min','s-ha-max'].forEach(id=>{const e=document.getElementById(id);e.tagName==='SELECT'?e.value='':e.value=''});
+  ['s-gj','s-odjel','s-odsjek','s-ha-min','s-ha-max','s-tip','s-vrsta','s-m3-min','s-m3-max'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   if(min10)toggleMin10();else applyFilters();
 }
 
@@ -2617,6 +2697,16 @@ updateSortHeaders();
     const opt=document.createElement('option');
     opt.value=br; opt.textContent='GJ '+br+' — '+gjMap[br];
     sel.appendChild(opt);
+  });
+})();
+// Popuni dropdown vrsta drveta u Pretrazi
+(function(){
+  const sel=document.getElementById('s-vrsta');
+  if(!sel) return;
+  const names=new Set();
+  Object.values(VRSTE_BY_KEY).forEach(arr=>arr.forEach(v=>{ if(v.naziv) names.add(v.naziv); }));
+  [...names].sort((a,b)=>a.localeCompare(b,'bs')).forEach(n=>{
+    const opt=document.createElement('option'); opt.value=n; opt.textContent=n; sel.appendChild(opt);
   });
 })();
 applyFilters();renderVrste();renderZaliha();sjInit();
