@@ -856,11 +856,55 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 
 <!-- ===== STABLA ===== -->
 <div class="panel" id="panel-stabla">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:16px;color:var(--text-muted);padding:40px 20px;text-align:center;">
-    <div style="font-size:2.5rem">🌲</div>
-    <div style="font-size:1.1rem;font-weight:700;color:var(--text)">Broj stabala po odsjecima</div>
-    <div style="font-size:0.85rem;max-width:400px;line-height:1.6">Podaci o broju stabala po debljinskim klasama bit će dostupni nakon što dodate odgovarajući fajl s podacima.</div>
-    <div style="font-size:0.78rem;color:var(--text-muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px 14px;font-family:monospace">stabla_data.js</div>
+  <div class="panel-inner">
+    <div class="filter-card" id="fc-stabla">
+      <div class="filter-card-title" onclick="toggleFilterCard('fc-stabla')">Filteri <span class="filter-card-arrow">▾</span></div>
+      <div class="filter-card-body">
+      <div class="filter-row" style="align-items:flex-end;gap:12px;">
+        <div class="field-group" style="min-width:195px">
+          <label>Gospodarska jedinica</label>
+          <select id="st-gj" onchange="renderStabala()">
+            <option value="">— Sve GJ —</option>
+            <option>GOMILA</option><option>BAŠTRA ĆORKOVAČA</option><option>VOJSKOVA</option>
+            <option>RISOVAC KRUPA</option><option>GRMEČ JASENICA</option>
+          </select>
+        </div>
+        <div class="field-group" style="width:100px"><label>Odjel</label><input type="text" id="st-odjel" placeholder="npr. 5" oninput="renderStabala()" maxlength="10"></div>
+        <div class="field-group" style="width:120px">
+          <label>Sortiraj po</label>
+          <select id="st-sort" onchange="renderStabala()">
+            <option value="odjel">Odjel / Odsjek</option>
+            <option value="uk">Ukupno N/ha ↓</option>
+            <option value="tem">Temeljnica m²/ha ↓</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" onclick="document.getElementById('st-gj').value='';document.getElementById('st-odjel').value='';renderStabala();" style="margin-top:auto">Poništi</button>
+      </div>
+      </div>
+    </div>
+  </div>
+  <div class="results-bar">
+    <div class="results-meta" id="stabla-meta"></div>
+    <div style="font-size:0.68rem;color:var(--text-muted);padding-right:4px">N/ha = broj stabala po hektaru</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
+    <div class="table-scroll"><table id="stabla-table" style="min-width:900px;table-layout:fixed;"><thead><tr>
+      <th style="width:32px"></th>
+      <th style="width:130px">Gospod. jedinica</th>
+      <th class="num" style="width:52px">Odjel</th>
+      <th class="num" style="width:52px">Odsjek</th>
+      <th class="num" style="width:54px">ha</th>
+      <th class="num" style="width:62px">Gaz. kl.</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">0–5</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">6–10</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">11–20</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">21–30</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">31–50</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">51–80</th>
+      <th class="num" style="background:#2c5f2e;color:rgba(255,255,255,0.75);font-size:0.55rem;width:50px">&gt;80</th>
+      <th class="num" style="background:#1a3d1c;color:#fff;width:78px">Ukupno N/ha ↓</th>
+      <th class="num" style="width:78px">Temeljnica m²/ha</th>
+    </tr></thead><tbody id="stabla-body"></tbody></table></div>
   </div>
 </div>
 
@@ -1311,6 +1355,7 @@ function switchTab(n){
   });
   document.getElementById('sj-subtabs').classList.toggle('visible',n==='sjekored');
   if(n==='prirast') renderPrirast();
+  if(n==='stabla') renderStabala();
   updateHash();
 }
 
@@ -2467,6 +2512,152 @@ updateSortHeaders();
 applyFilters();renderVrste();renderZaliha();sjInit();
 updateSjStorageInfo();
 restoreHash();
+</script>
+<script src="stabala_data.js"></script>
+<script>
+// ── BROJ STABALA ──
+let stExpandedKey=null;
+
+function renderStabala(){
+  if(typeof STABALA==='undefined'){
+    document.getElementById('stabla-meta').innerHTML='<span style="color:var(--text-muted)">Podaci se učitavaju…</span>';
+    return;
+  }
+  const gjSel=document.getElementById('st-gj').value.trim();
+  const odSel=document.getElementById('st-odjel').value.trim();
+  const sortSel=document.getElementById('st-sort').value;
+
+  let data=[...STABALA];
+  if(gjSel) data=data.filter(r=>r.gj===gjSel);
+  if(odSel) data=data.filter(r=>String(r.od)===odSel);
+
+  if(sortSel==='uk') data.sort((a,b)=>b.uk-a.uk);
+  else if(sortSel==='tem') data.sort((a,b)=>b.tem-a.tem);
+  else data.sort((a,b)=>a.gj_br-b.gj_br||a.od-b.od||a.os-b.os);
+
+  const total=data.length;
+  const totN=data.reduce((s,r)=>s+r.uk,0);
+  document.getElementById('stabla-meta').innerHTML=
+    `<strong>${total.toLocaleString('bs')}</strong> odsjeka · Σ N/ha (prosjek): <strong>${total?Math.round(totN/total).toLocaleString('bs'):'—'}</strong>`;
+
+  const tbody=document.getElementById('stabla-body');
+  tbody.innerHTML='';
+  stExpandedKey=null;
+
+  const maxUk=data.length?Math.max(...data.map(r=>r.uk),1):1;
+
+  data.forEach(r=>{
+    const key=r.gj_br+'_'+r.od+'_'+r.os;
+    const safe=key.replace(/[^a-z0-9]/gi,'_');
+    const bar=r.uk>0?`<span style="display:inline-block;width:${Math.round(r.uk/maxUk*48)}px;height:6px;background:var(--accent);border-radius:2px;vertical-align:middle;margin-left:4px;opacity:0.7"></span>`:'';
+
+    const tr=document.createElement('tr');
+    tr.className='clickable';
+    tr.innerHTML=`
+      <td class="rank-num">▶</td>
+      <td style="font-size:0.72rem;font-weight:600">${r.gj}</td>
+      <td class="num">${r.od}</td>
+      <td class="num dim">${r.os||'—'}</td>
+      <td class="num dim">${r.p.toFixed(1)}</td>
+      <td class="num dim" style="font-size:0.7rem">${r.gk}</td>
+      ${r.dc.map(v=>`<td class="num" style="font-size:0.72rem;color:${v>0?'var(--accent)':'var(--text-muted)'};font-weight:${v>0?600:400}">${v>0?v.toLocaleString('bs'):'·'}</td>`).join('')}
+      <td class="num" style="font-weight:700;color:${r.uk>0?'var(--accent)':'var(--text-muted)'}">${r.uk>0?r.uk.toLocaleString('bs'):'—'}${bar}</td>
+      <td class="num dim">${r.tem>0?r.tem.toFixed(2):'—'}</td>`;
+    tr.addEventListener('click',()=>stToggleExpand(key,tr,r));
+    tbody.appendChild(tr);
+
+    const expTr=document.createElement('tr');
+    expTr.className='expand-row';
+    expTr.id='stexp-'+safe;
+    expTr.style.display='none';
+    const expTd=document.createElement('td');
+    expTd.colSpan=15;
+    expTr.appendChild(expTd);
+    tbody.appendChild(expTr);
+  });
+}
+
+function stToggleExpand(key,tr,r){
+  const safe=key.replace(/[^a-z0-9]/gi,'_');
+  const expRow=document.getElementById('stexp-'+safe);
+  if(stExpandedKey===key){
+    stExpandedKey=null;
+    expRow.style.display='none';
+    tr.classList.remove('expanded');
+    tr.querySelector('td:first-child').textContent='▶';
+  }else{
+    if(stExpandedKey){
+      const prev=document.getElementById('stexp-'+stExpandedKey.replace(/[^a-z0-9]/gi,'_'));
+      if(prev) prev.style.display='none';
+      document.querySelectorAll('#stabla-body tr.expanded').forEach(row=>{
+        row.classList.remove('expanded');
+        const td=row.querySelector('td:first-child');
+        if(td) td.textContent='▶';
+      });
+    }
+    stExpandedKey=key;
+    tr.classList.add('expanded');
+    tr.querySelector('td:first-child').textContent='▼';
+    expRow.querySelector('td').innerHTML=buildExpandStabala(r);
+    expRow.style.display='';
+  }
+}
+
+function buildExpandStabala(r){
+  const sorted=[...r.v].filter(v=>v.uk>0||v.dc.some(d=>d>0)).sort((a,b)=>b.uk-a.uk);
+  if(!sorted.length) return '<div style="padding:10px 16px;color:var(--text-muted);font-size:0.78rem;">Nema podataka po vrstama.</div>';
+
+  const DC_L=['0–5','6–10','11–20','21–30','31–50','51–80','&gt;80'];
+  const thS='background:#1a3d1c;color:rgba(255,255,255,0.88);padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;text-align:right;';
+  const thLS=thS+'text-align:left;';
+  const tdS='padding:5px 8px;font-size:0.75rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;';
+  const tdLS=tdS+'text-align:left;font-weight:700;';
+
+  let rows='';
+  sorted.forEach(v=>{
+    const col=v.vr==='Č'?'var(--četinari)':'var(--lišćari)';
+    const dcCells=v.dc.map(d=>
+      `<td style="${tdS}color:${d>0?'var(--accent)':'var(--text-muted)'};font-weight:${d>0?600:400}">${d>0?d.toLocaleString('bs'):'·'}</td>`
+    ).join('');
+    rows+=`<tr>
+      <td style="${tdLS}color:${col}">${v.n}${v.s?` <span style="color:var(--text-muted);font-weight:400;font-size:0.65rem">#${v.s}</span>`:''}</td>
+      <td style="${tdS}color:var(--text-muted);font-size:0.68rem">${v.vr==='Č'?'Četinari':'Lišćari'}</td>
+      <td style="${tdS}color:var(--text-muted);font-size:0.68rem">${v.b!=null?v.b:'—'}</td>
+      ${dcCells}
+      <td style="${tdS}color:var(--accent);font-weight:700">${v.uk>0?v.uk.toLocaleString('bs'):'—'}</td>
+      <td style="${tdS}color:var(--text-muted)">${v.t>0?v.t.toFixed(2):'—'}</td>
+    </tr>`;
+  });
+
+  const totDcCells=r.dc.map(d=>
+    `<td style="${tdS}background:#f0f4f0;font-weight:700;color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toLocaleString('bs'):'·'}</td>`
+  ).join('');
+  rows+=`<tr>
+    <td style="${tdLS}background:#f0f4f0;font-size:0.68rem;color:var(--text-muted)" colspan="2">Ukupno odsjek ${r.od}/${r.os}</td>
+    <td style="${tdS}background:#f0f4f0"></td>
+    ${totDcCells}
+    <td style="${tdS}background:#f0f4f0;font-weight:800;color:var(--accent)">${r.uk>0?r.uk.toLocaleString('bs'):'—'}</td>
+    <td style="${tdS}background:#f0f4f0;font-weight:700;color:var(--text-muted)">${r.tem>0?r.tem.toFixed(2):'—'}</td>
+  </tr>`;
+
+  return `<div style="padding:10px 16px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <div style="font-size:0.65rem;color:var(--text-muted);margin-bottom:6px">
+      <strong style="color:var(--accent)">${r.gj}</strong> · Odjel ${r.od}, Odsjek ${r.os} · GK ${r.gk} · ${r.p.toFixed(1)} ha · sve vrijednosti N/ha
+    </div>
+    <table style="border-collapse:collapse;font-family:var(--mono);">
+      <thead><tr>
+        <th style="${thLS}min-width:150px">Vrsta drveta</th>
+        <th style="${thS}width:70px">Skupina</th>
+        <th style="${thS}width:36px">Bon.</th>
+        ${DC_L.map(l=>`<th style="${thS}width:52px">${l}</th>`).join('')}
+        <th style="${thS}width:70px;background:#0a2e0a">Ukupno N/ha</th>
+        <th style="${thS}width:72px">Temeljnica m²/ha</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+renderStabala();
 </script>
 </body>
 </html>
