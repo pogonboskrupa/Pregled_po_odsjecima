@@ -285,8 +285,8 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 
 /* MOBILE */
 @media(max-width:768px){
-  html,body{overflow-x:hidden;background:var(--bg);}
-  body{font-size:13px;}
+  html,body{overflow-x:hidden;background:var(--bg);height:auto;}
+  body{font-size:13px;height:auto;min-height:100vh;min-height:100dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
   .header-top{padding:0 12px;min-height:44px;}
   .header-title-main{font-size:0.8rem;}
   .header-title-sub,.header-stats,.breadcrumb{display:none;}
