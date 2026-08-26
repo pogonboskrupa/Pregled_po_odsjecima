@@ -1,5 +1,5 @@
 // Elaborat — service worker (app-shell cache, radi offline)
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `elaborat-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -7,6 +7,7 @@ const APP_SHELL = [
   './index.html',
   './manifest.json',
   './prirast_data.js',
+  './stabala_data.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-192.png',
@@ -49,6 +50,7 @@ self.addEventListener('fetch', event => {
   const isAppShellDoc = req.mode === 'navigate' ||
     url.pathname.endsWith('/index.html') ||
     url.pathname.endsWith('/prirast_data.js') ||
+    url.pathname.endsWith('/stabala_data.js') ||
     url.pathname.endsWith('/manifest.json');
 
   if (isAppShellDoc) {
