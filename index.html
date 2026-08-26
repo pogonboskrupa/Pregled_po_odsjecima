@@ -888,8 +888,8 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 <!-- ===== PRIRAST ===== -->
 <div class="panel" id="panel-prirast">
   <div class="subtabs" id="pr-subtabs" style="display:flex;border-bottom:2px solid var(--border);padding:0 20px;background:var(--surface);">
-    <div class="tab active" id="pr-tab-odsjeci" onclick="prSwitchSub('odsjeci')" style="font-size:0.68rem;">PO ODSJECIMA</div>
-    <div class="tab" id="pr-tab-gk" onclick="prSwitchSub('gk')" style="font-size:0.68rem;">PO GAZDINSKIM KLASAMA</div>
+    <div class="subtab active" id="pr-tab-odsjeci" onclick="prSwitchSub('odsjeci')" style="font-size:0.68rem;">PO ODSJECIMA</div>
+    <div class="subtab" id="pr-tab-gk" onclick="prSwitchSub('gk')" style="font-size:0.68rem;">PO GAZDINSKIM KLASAMA</div>
   </div>
   <!-- Sub-panel: Po odsjecima -->
   <div id="pr-sub-odsjeci" style="display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
@@ -901,7 +901,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
       </div>
       <div class="filter-card-body">
       <div class="filter-row">
-        <div class="field-group" style="min-width:195px"><label>Gospodarska jedinica</label><select id="pr-gj" onchange="renderPrirast()"><option value="">— Sve GJ —</option><option>GOMILA</option><option>BAŠTRA ĆORKOVAČA</option><option>VOJSKOVA</option><option>RISOVAC KRUPA</option><option>GRMEČ JASENICA</option></select></div>
+        <div class="field-group" style="min-width:195px"><label>Gospodarska jedinica</label><select id="pr-gj" onchange="renderPrirast()"><option value="">— Sve GJ —</option><option>PLJEŠEVICA</option><option>GATA</option><option>MUTNICA</option><option>KLADUŠNICA</option><option>GLINICA</option><option>GOMILA</option><option>BAŠTRA ĆORKOVAČA</option><option>VOJSKOVA</option><option>RISOVAC KRUPA</option><option>GRMEČ JASENICA</option><option>LJUTOČ KULEN VAKUF</option><option>RISOVAC BIHAĆ</option></select></div>
         <div class="field-group" style="width:100px"><label>Odjel</label><input type="text" id="pr-odjel" placeholder="npr. 009" oninput="renderPrirast()" style="height:30px"></div>
         <div class="field-group" style="width:186px"><label>Sortiraj po</label><select id="pr-sort" onchange="renderPrirast()"><option value="pr_m3ha">Prirast (m³/ha) — silazno</option><option value="pr_m3">Prirast ukupno (m³)</option><option value="povrsina">Površina (ha)</option><option value="ukupno_m3ha">Zaliha (m³/ha)</option></select></div>
         <div class="field-group" style="width:90px"><label>Min. površina (ha)</label><input type="number" id="pr-ha-min" placeholder="0" min="0" oninput="renderPrirast()"></div>
@@ -2597,7 +2597,7 @@ function buildExpandGK(r){
   const DC_L=['0–5','6–10','11–20','21–30','31–50','51–80','&gt;80'];
   const pr=PRIRAST[r.gj_br]?PRIRAST[r.gj_br][r.gk]||null:null;
   const totalM3ha=pr?pr.m3ha:r.vrste.reduce((s,v)=>s+v.m3ha,0);
-  const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanāčka šuma'};
+  const GK_TIP={1:'Visoka šuma',3:'Kultura',4:'Izdanačka šuma'};
   const tipLabel=GK_TIP[String(r.gk)[0]]||'';
 
   const thS='background:#2c5f2e;color:rgba(255,255,255,0.88);padding:5px 8px;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;white-space:nowrap;text-align:right;';

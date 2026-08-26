@@ -2,7 +2,7 @@
   "name": "Elaborat — Unsko Pogon gospodarenja Bos.Krupa",
   "short_name": "Elaborat",
   "description": "Evidencija drvne mase, sjekored i prirast po odsjecima — Unsko Pogon gospodarenja Bos.Krupa",
-  "id": "/index.html",
+  "id": "./index.html",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
