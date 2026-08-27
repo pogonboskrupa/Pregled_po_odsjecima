@@ -655,8 +655,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 
 <!-- Sjekored subtabs -->
 <div class="subtabs" id="sj-subtabs">
-  <div class="subtab active" onclick="sjSwitchSub('godinama')">Po godinama</div>
-  <div class="subtab" onclick="sjSwitchSub('gantt')">Vremenska crta</div>
+  <div class="subtab active" id="sj-tab-godinama" onclick="sjSwitchSub('godinama')">Po godinama</div>
+  <div class="subtab" id="sj-tab-gantt" onclick="sjSwitchSub('gantt')">Vremenska crta</div>
+  <div class="subtab" id="sj-tab-doznaka" onclick="sjSwitchSub('doznaka')">Zaliha u vrijeme sječe</div>
 </div>
 
 <div class="app-body">
@@ -881,6 +882,50 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
       </div>
     </div>
     <div class="gantt-wrap" id="gantt-wrap"><div class="gantt-inner" id="gantt-inner"></div></div>
+  </div>
+  <!-- Sub-panel: Zaliha u vrijeme sječe -->
+  <div id="sj-sub-doznaka" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
+    <div class="panel-inner">
+      <div class="filter-card" id="fc-doznaka">
+        <div class="filter-card-title" onclick="toggleFilterCard('fc-doznaka')">
+          <span class="fc-label">▸ Parametri izračuna</span>
+          <span class="filter-card-toggle">▾</span>
+        </div>
+        <div class="filter-card-body">
+        <div class="filter-row">
+          <div class="field-group" style="width:130px"><label>Godina doznake</label><input type="number" id="doz-godina" value="2026" min="2021" max="2060" step="1" oninput="renderSjDoznaka()"></div>
+          <div class="field-group" style="min-width:195px"><label>Gospodarska jedinica</label><select id="doz-gj" onchange="renderSjDoznaka()"><option value="">— Sve GJ —</option><option>PLJEŠEVICA</option><option>GATA</option><option>MUTNICA</option><option>KLADUŠNICA</option><option>GLINICA</option><option>GOMILA</option><option>BAŠTRA ĆORKOVAČA</option><option>VOJSKOVA</option><option>RISOVAC KRUPA</option><option>GRMEČ JASENICA</option><option>LJUTOČ KULEN VAKUF</option><option>RISOVAC BIHAĆ</option></select></div>
+          <div class="field-group" style="width:100px"><label>Odjel</label><input type="text" id="doz-odjel" placeholder="npr. 009" oninput="renderSjDoznaka()"></div>
+          <div class="field-group" style="width:200px"><label>Sortiraj po</label><select id="doz-sort" onchange="renderSjDoznaka()">
+            <option value="proj_m3ha">Zaliha u god. doznake (m³/ha)</option>
+            <option value="proj_m3">Zaliha u god. doznake — ukupno (m³)</option>
+            <option value="ukupno_m3ha">Bazna zaliha 2021 (m³/ha)</option>
+            <option value="prirast_rate">Godišnji prirast (m³/ha)</option>
+            <option value="povrsina">Površina (ha)</option>
+          </select></div>
+          <div class="field-group" style="width:100px"><label>Min. površina (ha)</label><input type="number" id="doz-ha-min" placeholder="0" min="0" oninput="renderSjDoznaka()"></div>
+          <div class="field-group" style="width:110px"><label>Prikaži</label><select id="doz-top" onchange="renderSjDoznaka()"><option value="50">Top 50</option><option value="100">Top 100</option><option value="200">Top 200</option><option value="0">Svi</option></select></div>
+        </div>
+        <div class="filter-row">
+          <div class="modal-note" style="margin:0;flex:1;min-width:280px">💡 Bazna drvna zaliha je iz elaborata uređivanja (<strong>2021</strong> godina). Za izabranu godinu doznake aplikacija dodaje godišnji zapreminski prirast (GK prosjek, m³/ha/god) pomnožen brojem proteklih godina: <code>zaliha(god) = zaliha(2021) + prirast × (god − 2021)</code>, a ukupna zapremina se dobija množenjem sa površinom odsjeka.</div>
+        </div>
+        </div>
+      </div>
+      <div class="results-bar">
+        <div class="results-meta" id="doznaka-meta"></div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
+      <div class="table-scroll"><table><thead><tr>
+        <th>Gospod. jedinica</th><th>Odjel</th><th>Odsjek</th>
+        <th class="num">Površina (ha)</th><th class="num">Gazd. klasa</th>
+        <th class="num">Zaliha 2021 (m³/ha)</th>
+        <th class="num">Prirast (m³/ha/god)</th>
+        <th class="num">Br. godina</th>
+        <th class="num">Zaliha u god. doznake (m³/ha)</th>
+        <th class="num">Zaliha u god. doznake (m³)</th>
+      </tr></thead><tbody id="doznaka-body"></tbody></table></div>
+    </div>
   </div>
 </div>
 
@@ -1957,6 +2002,55 @@ function renderZaliha(){
   });
 }
 
+// ── ZALIHA U VRIJEME SJEČE (doznaka) ──
+const DOZNAKA_BASE_YEAR=2021;
+let doznakaCurrent=[];
+function renderSjDoznaka(){
+  const godRaw=parseInt(document.getElementById('doz-godina').value);
+  const godina=isNaN(godRaw)?DOZNAKA_BASE_YEAR:godRaw;
+  const brojGodina=godina-DOZNAKA_BASE_YEAR;
+  const gj=document.getElementById('doz-gj').value;
+  const odjelF=document.getElementById('doz-odjel').value.trim().toLowerCase();
+  const sc=document.getElementById('doz-sort').value;
+  const top=parseInt(document.getElementById('doz-top').value);
+  const mn=parseFloat(document.getElementById('doz-ha-min').value)||0;
+
+  let data=ODSJECI.filter(o=>{
+    if(gj&&o.gj!==gj)return false;
+    if(odjelF&&!o.odjel.toLowerCase().includes(odjelF))return false;
+    if(o.povrsina<mn)return false;
+    return true;
+  }).map(o=>{
+    const pr=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
+    const rate=pr?pr.m3ha:0;
+    const proj_m3ha=Math.max(0,o.ukupno_m3ha+rate*brojGodina);
+    const proj_m3=proj_m3ha*o.povrsina;
+    return {...o,prirast_rate:rate,proj_m3ha,proj_m3};
+  });
+
+  data.sort((a,b)=>b[sc]-a[sc]);
+  const total=data.length;
+  if(top>0)data=data.slice(0,top);
+  doznakaCurrent=data;
+
+  const znak=brojGodina>=0?'+'+brojGodina:String(brojGodina);
+  document.getElementById('doznaka-meta').innerHTML=`Prikazano <strong>${data.length}</strong> od <strong>${total}</strong> odsjeka · Bazna godina uređivanja: <strong>${DOZNAKA_BASE_YEAR}</strong> · Godina doznake: <strong>${godina}</strong> (${znak} god.)`;
+
+  const tbody=document.getElementById('doznaka-body');
+  tbody.innerHTML=data.map(o=>{
+    const col=m3c(o.proj_m3ha);
+    return `<tr>
+      <td class="gj">${o.gj}</td><td class="code dim">${o.odjel}</td><td class="code">${o.odsjek}</td>
+      <td class="num dim">${o.povrsina.toFixed(2)}</td><td class="num dim">${o.gazd_klasa||'—'}</td>
+      <td class="num dim">${o.ukupno_m3ha.toFixed(2)}</td>
+      <td class="num dim">${o.prirast_rate>0?o.prirast_rate.toFixed(2):'—'}</td>
+      <td class="num dim">${brojGodina}</td>
+      <td class="num" style="color:${col};font-weight:700">${o.proj_m3ha.toFixed(2)}</td>
+      <td class="num dim">${o.proj_m3.toLocaleString('bs',{maximumFractionDigits:0})}</td>
+    </tr>`;
+  }).join('');
+}
+
 // ── SJEKORED ──
 const SJ_YEARS_REAL=[2012,2013,2014,2015,2016];
 const SJ_YEARS_PLAN=[2017,2018,2019,2020,2021,2026];
@@ -2044,10 +2138,12 @@ let sjCustom = sjLoad(), sjActiveYear = null, sjActiveSub = 'godinama', ganttMin
 
 function sjSwitchSub(sub){
   sjActiveSub=sub;
-  document.querySelectorAll('.subtab').forEach((t,i)=>t.classList.toggle('active',['godinama','gantt'][i]===sub));
+  ['godinama','gantt','doznaka'].forEach(s=>document.getElementById('sj-tab-'+s).classList.toggle('active',s===sub));
   document.getElementById('sj-sub-godinama').style.display=sub==='godinama'?'flex':'none';
   document.getElementById('sj-sub-gantt').style.display=sub==='gantt'?'flex':'none';
+  document.getElementById('sj-sub-doznaka').style.display=sub==='doznaka'?'flex':'none';
   if(sub==='gantt')renderGantt();
+  if(sub==='doznaka')renderSjDoznaka();
 }
 
 // Group SJ_DATA by odjel (merge odsjeci into one entry per odjel)
