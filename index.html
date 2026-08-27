@@ -1096,6 +1096,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
       </div>
     </div>
   </div>
+  <div class="subtabs visible" id="izv-subtabs" style="padding:0 20px;">
+    <div class="subtab active" id="izv-tab-hektar" onclick="izvSwitchSub('hektar')">Po hektaru</div>
+    <div class="subtab" id="izv-tab-povrsina" onclick="izvSwitchSub('povrsina')">Po površini odsjeka</div>
+  </div>
   <div id="izv-status" style="padding:6px 20px;font-size:0.78rem;color:var(--text-muted);min-height:28px;"></div>
   <div id="izv-report" style="flex:1;overflow-y:auto;padding:0 20px 24px;min-height:0;"></div>
 </div>
@@ -3259,6 +3263,14 @@ function odjelKey(s){
 }
 function odjelLabel(od){return String(od).replace(/^0+(?=\d)/,'');}
 
+// ── PODTABOVI: Po hektaru / Po površini odsjeka ──
+let izvActiveSub='hektar';
+function izvSwitchSub(sub){
+  izvActiveSub=sub;
+  ['hektar','povrsina'].forEach(s=>document.getElementById('izv-tab-'+s).classList.toggle('active',s===sub));
+  if(document.getElementById('izv-report').innerHTML.trim())generateIzvjestaj();
+}
+
 function generateIzvjestaj(){
   const gjVal=document.getElementById('izv-gj').value.trim();
   const odRaw=document.getElementById('izv-od').value.trim();
@@ -3324,6 +3336,9 @@ function generateIzvjestaj(){
 }
 
 function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
+  const povrsina=izvActiveSub==='povrsina';
+  const mult=povrsina?o.povrsina:1;
+
   // ── header ──
   let out=`<div class="izv-card">
   <div class="izv-card-hdr" style="border-left:4px solid ${tipCol}">
@@ -3337,6 +3352,7 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
   // ── zaliha ──
   if(o.ukupno_m3ha>0){
     const sorted=[...vrste].sort((a,b)=>b.m3ha-a.m3ha);
+    const zUnit=povrsina?'m³':'m³/ha';
     out+=`<div class="izv-section">
     <div class="izv-section-title">Drvna zaliha</div>
     <div class="izv-meta-row">
@@ -3350,7 +3366,7 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
         <th style="min-width:120px">Vrsta</th>
         <th>Gr.</th><th style="min-width:32px">%</th><th>Bon.</th>
         ${IZV_DC.map(d=>`<th>${d}</th>`).join('')}
-        <th style="min-width:60px">m³/ha</th>
+        <th style="min-width:60px">${zUnit}</th>
       </tr></thead>
       <tbody>
       ${(()=>{
@@ -3363,8 +3379,8 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
             <td style="font-size:0.68rem">${v.grupa==='Četinari'?'Č':'L'}</td>
             <td>${v.omjer>0?v.omjer.toFixed(0):'—'}</td>
             <td>${v.bonitet||'—'}</td>
-            ${v.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
-            <td style="font-weight:700;color:var(--accent)">${v.m3ha>0?v.m3ha.toFixed(2):'—'}</td>
+            ${v.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?(d*mult).toFixed(2):'·'}</td>`).join('')}
+            <td style="font-weight:700;color:var(--accent)">${v.m3ha>0?(v.m3ha*mult).toFixed(2):'—'}</td>
           </tr>`;
         }
         function iGrupaRow(arr,label){
@@ -3373,8 +3389,8 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
           const gM3ha=arr.reduce((s,v)=>s+v.m3ha,0);
           return `<tr class="izv-total" style="background:rgba(255,255,255,0.04)">
             <td colspan="4" style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em">${label} (${arr.length})</td>
-            ${gDc.map(d=>`<td>${d>0?d.toFixed(2):'·'}</td>`).join('')}
-            <td>${gM3ha>0?gM3ha.toFixed(2):'—'}</td>
+            ${gDc.map(d=>`<td>${d>0?(d*mult).toFixed(2):'·'}</td>`).join('')}
+            <td>${gM3ha>0?(gM3ha*mult).toFixed(2):'—'}</td>
           </tr>`;
         }
         return iCet.map(iVrstaRow).join('')+iGrupaRow(iCet,'Četinari')+
@@ -3382,8 +3398,8 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
       })()}
       <tr class="izv-total">
         <td colspan="4">UKUPNO</td>
-        ${o.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
-        <td style="color:var(--accent)">${o.ukupno_m3ha.toFixed(2)}</td>
+        ${o.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?(d*mult).toFixed(2):'·'}</td>`).join('')}
+        <td style="color:var(--accent)">${povrsina?o.ukupno_m3.toFixed(2):o.ukupno_m3ha.toFixed(2)}</td>
       </tr>
       </tbody>
     </table>
@@ -3410,15 +3426,10 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
     <table class="izv-tbl">
       <thead><tr><th></th>${IZV_DC.map(d=>`<th>${d}</th>`).join('')}<th>Ukupno</th></tr></thead>
       <tbody>
-      <tr>
-        <td style="font-weight:600">m³/ha/god</td>
-        ${pr.dc.map(d=>`<td style="color:${d>0?'#4caf50':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
-        <td style="font-weight:700;color:#4caf50">${pr.m3ha.toFixed(2)}</td>
-      </tr>
       <tr class="izv-total">
-        <td style="font-weight:600">m³/god (ovaj odsjek, ${o.povrsina.toFixed(2)} ha)</td>
-        ${prDcOdsjek.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
-        <td style="color:var(--accent)">${prM3Odsjek.toFixed(2)}</td>
+        <td style="font-weight:600">${povrsina?`m³/god (${o.povrsina.toFixed(2)} ha)`:'m³/ha/god'}</td>
+        ${(povrsina?prDcOdsjek:pr.dc).map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
+        <td style="color:var(--accent)">${(povrsina?prM3Odsjek:pr.m3ha).toFixed(2)}</td>
       </tr>
       </tbody>
     </table>
@@ -3429,6 +3440,8 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
   // ── stabala ──
   if(stab){
     const vSorted=[...stab.v].sort((a,b)=>b.uk-a.uk);
+    const nUnit=povrsina?'Broj (kom)':'N/ha';
+    const temUnit=povrsina?'Tem. m²':'Tem. m²/ha';
     out+=`<div class="izv-section">
     <div class="izv-section-title">Broj stabala</div>
     <div class="izv-meta-row">
@@ -3437,19 +3450,19 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
     <table class="izv-tbl">
-      <thead><tr><th style="min-width:120px">Vrsta</th>${IZV_DC.map(d=>`<th>${d}</th>`).join('')}<th>N/ha</th><th>Tem. m²/ha</th></tr></thead>
+      <thead><tr><th style="min-width:120px">Vrsta</th>${IZV_DC.map(d=>`<th>${d}</th>`).join('')}<th>${nUnit}</th><th>${temUnit}</th></tr></thead>
       <tbody>
       ${vSorted.map(sv=>`<tr>
         <td style="font-size:0.71rem">${sv.n} <span style="color:var(--text-muted)">(${sv.vr})</span></td>
-        ${sv.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d:'·'}</td>`).join('')}
-        <td style="font-weight:600">${sv.uk||0}</td>
-        <td>${(sv.t||0).toFixed(2)}</td>
+        ${sv.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?(d*mult).toFixed(0):'·'}</td>`).join('')}
+        <td style="font-weight:600">${((sv.uk||0)*mult).toFixed(0)}</td>
+        <td>${((sv.t||0)*mult).toFixed(2)}</td>
       </tr>`).join('')}
       <tr class="izv-total">
         <td>UKUPNO</td>
-        ${stab.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d:'·'}</td>`).join('')}
-        <td>${stab.uk||0}</td>
-        <td>${(stab.tem||0).toFixed(2)}</td>
+        ${stab.dc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?(d*mult).toFixed(0):'·'}</td>`).join('')}
+        <td>${((stab.uk||0)*mult).toFixed(0)}</td>
+        <td>${((stab.tem||0)*mult).toFixed(2)}</td>
       </tr>
       </tbody>
     </table>
