@@ -1087,7 +1087,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
           </div>
           <div class="field-group" style="width:150px">
             <label>Broj odjela</label>
-            <input type="number" id="izv-od" placeholder="prazno = cijela GJ" min="1" style="width:100%">
+            <input type="text" id="izv-od" placeholder="prazno = cijela GJ, npr. 23 ili 23/1" style="width:100%">
           </div>
           <button class="btn" onclick="generateIzvjestaj()" style="margin-top:auto;background:var(--accent)">Generiši izvještaj</button>
           <button class="btn btn-secondary" onclick="printIzvjestaj()" style="margin-top:auto">🖨 Printaj / PDF</button>
@@ -3250,6 +3250,15 @@ function izvSummaryBox(odsjeci,title){
   </div>`;
 }
 
+// Odjeli ponekad imaju sufiks poput "23/1" (prelazni odjel). Normalizuje
+// vodeće nule i razmake radi poređenja, npr. "023/1" i "23/1" → "23/1".
+function odjelKey(s){
+  const m=String(s).trim().match(/^0*(\d+)\s*(\/\s*\d+)?$/);
+  if(!m)return String(s).trim().toLowerCase();
+  return m[1]+(m[2]?'/'+m[2].replace(/\D/g,''):'');
+}
+function odjelLabel(od){return String(od).replace(/^0+(?=\d)/,'');}
+
 function generateIzvjestaj(){
   const gjVal=document.getElementById('izv-gj').value.trim();
   const odRaw=document.getElementById('izv-od').value.trim();
@@ -3277,7 +3286,7 @@ function generateIzvjestaj(){
     html+=izvSummaryBox(all,'Sažetak gospodarske jedinice');
     odjeli.forEach(od=>{
       const arr=byOdjel[od];
-      html+=`<div class="izv-odjel-hdr" style="font-size:0.92rem;margin-top:18px">Odjel ${parseInt(od)}
+      html+=`<div class="izv-odjel-hdr" style="font-size:0.92rem;margin-top:18px">Odjel ${odjelLabel(od)}
         <span style="font-size:0.72rem;font-weight:400;color:var(--text-muted);margin-left:12px">${arr.length} odsjeka &middot; ${arr.reduce((s,o)=>s+o.povrsina,0).toFixed(1)} ha</span>
       </div>`;
       arr.forEach(o=>{ html+=izvOdsjekCard(o); });
@@ -3288,26 +3297,26 @@ function generateIzvjestaj(){
   }
 
   // ── REŽIM: JEDAN ODJEL ──
-  const odInt=parseInt(odRaw);
-  if(isNaN(odInt)||odInt<1){status.textContent='Unesite ispravan broj odjela (ili ostavite prazno za cijelu GJ).';return;}
-  const odPad=String(odInt).padStart(3,'0');
+  if(!/^\d+\s*(\/\s*\d+)?$/.test(odRaw)){status.textContent='Unesite ispravan broj odjela, npr. 23 ili 23/1 (ili ostavite prazno za cijelu GJ).';return;}
+  const odKey=odjelKey(odRaw);
 
-  const odsjeci=[...ODSJECI.filter(o=>o.gj===gjVal&&o.odjel===odPad)];
+  const odsjeci=[...ODSJECI.filter(o=>o.gj===gjVal&&odjelKey(o.odjel)===odKey)];
   if(!odsjeci.length){
-    status.textContent=`Nema podataka za odjel ${odInt} u GJ ${gjVal}.`;
+    status.textContent=`Nema podataka za odjel ${odRaw} u GJ ${gjVal}.`;
     report.innerHTML='';
     return;
   }
   odsjeci.sort((a,b)=>a.odsjek-b.odsjek);
+  const odLabel=odjelLabel(odsjeci[0].odjel);
 
   const totPovr=odsjeci.reduce((s,o)=>s+o.povrsina,0);
   const totM3=odsjeci.reduce((s,o)=>s+o.ukupno_m3,0);
-  status.textContent=`GJ ${gjVal} · Odjel ${odInt} · ${odsjeci.length} odsjeka · ${totPovr.toFixed(1)} ha · ${totM3>0?totM3.toFixed(0)+' m³ ukupno':''}`;
+  status.textContent=`GJ ${gjVal} · Odjel ${odLabel} · ${odsjeci.length} odsjeka · ${totPovr.toFixed(1)} ha · ${totM3>0?totM3.toFixed(0)+' m³ ukupno':''}`;
 
-  let html=`<div class="izv-odjel-hdr">GJ ${gjVal} &middot; ODJEL ${odInt}
+  let html=`<div class="izv-odjel-hdr">GJ ${gjVal} &middot; ODJEL ${odLabel}
     <span style="font-size:0.75rem;font-weight:400;color:var(--text-muted);margin-left:14px">${odsjeci.length} odsjeka &middot; ${totPovr.toFixed(1)} ha${totM3>0?' &middot; '+totM3.toFixed(0)+' m³':''}</span>
   </div>`;
-  html+=izvSummaryBox(odsjeci,`Sažetak odjela ${odInt}`);
+  html+=izvSummaryBox(odsjeci,`Sažetak odjela ${odLabel}`);
   odsjeci.forEach(o=>{ html+=izvOdsjekCard(o); });
 
   report.innerHTML=html;
@@ -3457,7 +3466,7 @@ function printIzvjestaj(){
   if(!report.innerHTML.trim()){alert('Generiši izvještaj pa tek onda printaj.');return;}
   const gjVal=document.getElementById('izv-gj').value;
   const odVal=document.getElementById('izv-od').value.trim();
-  const scopeLabel=odVal?('Odjel '+(parseInt(odVal)||odVal)):'Cijela gospodarska jedinica';
+  const scopeLabel=odVal?('Odjel '+odjelLabel(odVal)):'Cijela gospodarska jedinica';
   const subTitle=odVal?'Izvještaj po odjelu':'Izvještaj po gospodarskoj jedinici';
   const datum=new Date().toLocaleDateString('bs-BA');
 
