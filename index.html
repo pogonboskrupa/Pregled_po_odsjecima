@@ -1089,10 +1089,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
             <label>Broj odjela</label>
             <input type="text" id="izv-od" placeholder="prazno = cijela GJ, npr. 23 ili 23/1" style="width:100%">
           </div>
+          <div class="field-group" style="width:170px">
+            <label>Godina projekcije zalihe</label>
+            <input type="number" id="izv-godina" placeholder="opciono, npr. 2028" min="2021" max="2060" step="1" style="width:100%">
+          </div>
           <button class="btn" onclick="generateIzvjestaj()" style="margin-top:auto;background:var(--accent)">Generiši izvještaj</button>
           <button class="btn btn-secondary" onclick="printIzvjestaj()" style="margin-top:auto">🖨 Printaj / PDF</button>
         </div>
-        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:7px;">💡 Ostavi <strong>broj odjela prazan</strong> za izvještaj cijele gospodarske jedinice (svi odjeli + sažetak).</div>
+        <div style="font-size:0.66rem;color:var(--text-muted);margin-top:7px;">💡 Ostavi <strong>broj odjela prazan</strong> za izvještaj cijele gospodarske jedinice (svi odjeli + sažetak). Zaliha u tabelama je <strong>stanje u doba uređivanja (2021.)</strong>; unesi <strong>godinu projekcije</strong> (npr. 2028) da se doda i procijenjeno stanje zalihe za tu godinu (zaliha 2021 + prirast po debljinskim klasama &times; broj godina &times; površina).</div>
       </div>
     </div>
   </div>
@@ -3232,10 +3236,16 @@ function izvSummaryBox(odsjeci,title){
   const cl=cet+lis, cp=cl>0?cet/cl*100:0;
   const withZ=odsjeci.filter(o=>o.ukupno_m3ha>0).length;
   // prirast: za svaki odsjek m³/ha (GK prosjek) × vlastita površina odsjeka
-  let pr=0;
+  let pr=0,projM3=0,brojGodina=0;
   odsjeci.forEach(o=>{
     const p=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
-    if(p) pr+=p.m3ha*o.povrsina;
+    if(p){
+      pr+=p.m3ha*o.povrsina;
+      if(izvProjYear){
+        brojGodina=izvProjYear-DOZNAKA_BASE_YEAR;
+        projM3+=Math.max(0,o.ukupno_m3ha+p.m3ha*brojGodina)*o.povrsina;
+      }
+    }
   });
   return `<div class="izv-card" style="background:var(--surface)">
     <div class="izv-card-hdr" style="border-left:4px solid var(--accent);background:var(--accent-pale)">
@@ -3245,9 +3255,10 @@ function izvSummaryBox(odsjeci,title){
       <div class="izv-meta-row" style="gap:8px 26px">
         <span class="izv-stat"><b>${odsjeci.length}</b> odsjeka <span style="color:var(--text-muted)">(${withZ} sa zalihom)</span></span>
         <span class="izv-stat"><b>${ha.toFixed(1)}</b> ha</span>
-        <span class="izv-stat"><b>${m3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha</span>
+        <span class="izv-stat"><b>${m3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha (${DOZNAKA_BASE_YEAR})</span>
         <span class="izv-stat"><b>${m3ha.toFixed(1)}</b> m³/ha</span>
         ${pr>0?`<span class="izv-stat"><b>${pr.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³/god prirast</span>`:''}
+        ${izvProjYear&&projM3>0?`<span class="izv-stat" style="color:var(--accent)"><b>${projM3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha u ${izvProjYear}.</span>`:''}
         ${cl>0?`<span class="izv-stat">Čet/Liš: <b style="color:#2c5f2e">${cp.toFixed(0)}%</b> / <b style="color:#8b5e0a">${(100-cp).toFixed(0)}%</b></span>`:''}
       </div>
     </div>
@@ -3271,11 +3282,17 @@ function izvSwitchSub(sub){
   if(document.getElementById('izv-report').innerHTML.trim())generateIzvjestaj();
 }
 
+// Godina projekcije zalihe (opciono) — zaliha(godina) = zaliha(2021) +
+// prirast po debljinskim klasama × broj godina, po odsjeku/površini.
+let izvProjYear=null;
 function generateIzvjestaj(){
   const gjVal=document.getElementById('izv-gj').value.trim();
   const odRaw=document.getElementById('izv-od').value.trim();
   const status=document.getElementById('izv-status');
   const report=document.getElementById('izv-report');
+
+  const godRaw=parseInt(document.getElementById('izv-godina').value);
+  izvProjYear=(!isNaN(godRaw)&&godRaw>DOZNAKA_BASE_YEAR)?godRaw:null;
 
   if(!gjVal){status.textContent='Odaberite gospodarsku jedinicu.';return;}
 
@@ -3430,6 +3447,34 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
         <td style="font-weight:600">${povrsina?`m³/god (${o.povrsina.toFixed(2)} ha)`:'m³/ha/god'}</td>
         ${(povrsina?prDcOdsjek:pr.dc).map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
         <td style="color:var(--accent)">${(povrsina?prM3Odsjek:pr.m3ha).toFixed(2)}</td>
+      </tr>
+      </tbody>
+    </table>
+    </div>
+    </div>`;
+  }
+
+  // ── projekcija zalihe za izabranu godinu ──
+  if(pr&&izvProjYear&&o.ukupno_m3ha>0){
+    const brojGodina=izvProjYear-DOZNAKA_BASE_YEAR;
+    const projDc=o.dc.map((d,i)=>Math.max(0,d+(pr.dc[i]||0)*brojGodina));
+    const projM3ha=Math.max(0,o.ukupno_m3ha+pr.m3ha*brojGodina);
+    const projM3=projM3ha*o.povrsina;
+    const pUnit=povrsina?'m³':'m³/ha';
+    out+=`<div class="izv-section">
+    <div class="izv-section-title">Zaliha u ${izvProjYear}. godini <span style="font-size:0.6rem;font-weight:400;text-transform:none">(projekcija: zaliha ${DOZNAKA_BASE_YEAR} + prirast &times; ${brojGodina} god.)</span></div>
+    <div class="izv-meta-row">
+      <span class="izv-stat"><b>${projM3ha.toFixed(2)}</b> m³/ha</span>
+      <span class="izv-stat" style="color:var(--accent)"><b>${projM3.toFixed(2)}</b> m³ za ovaj odsjek <span style="color:var(--text-muted);font-weight:400">(&times; ${o.povrsina.toFixed(2)} ha)</span></span>
+    </div>
+    <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <table class="izv-tbl">
+      <thead><tr><th></th>${IZV_DC.map(d=>`<th>${d}</th>`).join('')}<th>${pUnit}</th></tr></thead>
+      <tbody>
+      <tr class="izv-total">
+        <td style="font-weight:600">${izvProjYear}.</td>
+        ${(povrsina?projDc.map(d=>d*o.povrsina):projDc).map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
+        <td style="color:var(--accent)">${(povrsina?projM3:projM3ha).toFixed(2)}</td>
       </tr>
       </tbody>
     </table>
