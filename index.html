@@ -3484,8 +3484,17 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
     const projM3ha=Math.max(0,o.ukupno_m3ha+prM3ha*brojGodina);
     const projM3=projM3ha*o.povrsina;
     const pUnit=povrsina?'m³':'m³/ha';
+
+    // Prirast je dostupan samo na nivou GK (ne po vrsti). Rast po debljinskoj
+    // klasi raspodjeljujemo na vrste srazmjerno njihovom trenutnom učešću u
+    // ukupnoj zalihi odsjeka — zbir po vrstama tačno odgovara ukupnom redu.
+    const pSorted=[...vrste].sort((a,b)=>b.m3ha-a.m3ha);
+    function vShare(v){return o.ukupno_m3ha>0?v.m3ha/o.ukupno_m3ha:0;}
+    function vProjDc(v){const s=vShare(v);return IZV_DC.map((_,i)=>Math.max(0,v.dc[i]+prDc[i]*brojGodina*s));}
+    function vProjM3ha(v){return Math.max(0,v.m3ha+prM3ha*brojGodina*vShare(v));}
+
     out+=`<div class="izv-section izv-section-proj">
-    <div class="izv-section-title">Zaliha u ${izvProjYear}. godini<span class="izv-proj-badge">PROCJENA</span> <span style="font-size:0.6rem;font-weight:400;text-transform:none">(zaliha ${DOZNAKA_BASE_YEAR} + prirast &times; ${brojGodina} god.)</span></div>
+    <div class="izv-section-title">Zaliha u ${izvProjYear}. godini<span class="izv-proj-badge">PROCJENA</span> <span style="font-size:0.6rem;font-weight:400;text-transform:none">(zaliha ${DOZNAKA_BASE_YEAR} + prirast &times; ${brojGodina} god.; rast raspodijeljen po vrstama srazmjerno trenutnom učešću)</span></div>
     <div class="izv-meta-row">
       <span class="izv-stat"><b>≈ ${projM3ha.toFixed(2)}</b> m³/ha</span>
       <span class="izv-stat" style="color:var(--accent)"><b>≈ ${projM3.toFixed(2)}</b> m³ za ovaj odsjek <span style="color:var(--text-muted);font-weight:400">(&times; ${o.povrsina.toFixed(2)} ha)</span></span>
@@ -3493,11 +3502,44 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
     <table class="izv-tbl">
-      <thead><tr><th></th>${IZV_DC.map(d=>`<th>${d}</th>`).join('')}<th>${pUnit}</th></tr></thead>
+      <thead><tr>
+        <th style="min-width:120px">Vrsta</th>
+        <th>Gr.</th><th style="min-width:32px">%</th><th>Bon.</th>
+        ${IZV_DC.map(d=>`<th>${d}</th>`).join('')}
+        <th style="min-width:60px">${pUnit}</th>
+      </tr></thead>
       <tbody>
+      ${(()=>{
+        const pCet=pSorted.filter(v=>v.grupa==='Četinari');
+        const pLis=pSorted.filter(v=>v.grupa!=='Četinari');
+        const pHasGroups=pCet.length>0&&pLis.length>0;
+        function pVrstaRow(v){
+          const vdc=vProjDc(v),vm3ha=vProjM3ha(v);
+          return `<tr>
+            <td style="font-weight:600;font-size:0.73rem">${v.naziv}</td>
+            <td style="font-size:0.68rem">${v.grupa==='Četinari'?'Č':'L'}</td>
+            <td>${v.omjer>0?v.omjer.toFixed(0):'—'}</td>
+            <td>${v.bonitet||'—'}</td>
+            ${vdc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?(d*mult).toFixed(2):'·'}</td>`).join('')}
+            <td style="font-weight:700;color:var(--accent)">${vm3ha>0?(vm3ha*mult).toFixed(2):'—'}</td>
+          </tr>`;
+        }
+        function pGrupaRow(arr,label){
+          if(!pHasGroups||arr.length===0)return'';
+          const gDc=IZV_DC.map((_,i)=>arr.reduce((s,v)=>s+vProjDc(v)[i],0));
+          const gM3ha=arr.reduce((s,v)=>s+vProjM3ha(v),0);
+          return `<tr class="izv-total" style="background:rgba(255,255,255,0.04)">
+            <td colspan="4" style="font-size:0.68rem;text-transform:uppercase;letter-spacing:0.06em">${label} (${arr.length})</td>
+            ${gDc.map(d=>`<td>${d>0?(d*mult).toFixed(2):'·'}</td>`).join('')}
+            <td>${gM3ha>0?(gM3ha*mult).toFixed(2):'—'}</td>
+          </tr>`;
+        }
+        return pCet.map(pVrstaRow).join('')+pGrupaRow(pCet,'Četinari')+
+               pLis.map(pVrstaRow).join('')+pGrupaRow(pLis,'Lišćari');
+      })()}
       <tr class="izv-total">
-        <td style="font-weight:600">≈ ${izvProjYear}.</td>
-        ${(povrsina?projDc.map(d=>d*o.povrsina):projDc).map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
+        <td colspan="4">≈ UKUPNO ${izvProjYear}.</td>
+        ${projDc.map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?(d*mult).toFixed(2):'·'}</td>`).join('')}
         <td style="color:var(--accent)">${(povrsina?projM3:projM3ha).toFixed(2)}</td>
       </tr>
       </tbody>
