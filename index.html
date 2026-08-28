@@ -483,7 +483,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 .izv-card-hdr{padding:10px 14px;background:var(--surface);display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .izv-odsjek-num{font-size:1.05rem;font-weight:800;letter-spacing:0.02em;}
 .izv-section{padding:10px 14px;border-top:1px solid var(--border);}
+.izv-section-proj{background:var(--accent-pale);border-top:1px solid var(--accent-mid);border-left:3px solid var(--accent);}
 .izv-section-title{font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-bottom:8px;}
+.izv-proj-badge{display:inline-block;font-size:0.56rem;font-weight:800;letter-spacing:0.06em;color:#fff;background:var(--accent);border-radius:2px;padding:1px 5px;margin-left:6px;vertical-align:1px;}
 .izv-meta-row{display:flex;flex-wrap:wrap;gap:6px 18px;margin-bottom:8px;}
 .izv-stat{font-size:0.78rem;color:var(--text-dim);}
 .izv-stat b{font-size:0.88rem;color:var(--text);font-weight:800;}
@@ -3269,7 +3271,7 @@ function izvSummaryBox(odsjeci,title){
         <span class="izv-stat"><b>${m3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha (${DOZNAKA_BASE_YEAR})</span>
         <span class="izv-stat"><b>${m3ha.toFixed(1)}</b> m³/ha</span>
         ${pr>0?`<span class="izv-stat"><b>${pr.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³/god prirast</span>`:''}
-        ${izvProjYear&&projM3>0?`<span class="izv-stat" style="color:var(--accent)"><b>${projM3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha u ${izvProjYear}.</span>`:''}
+        ${izvProjYear&&projM3>0?`<span class="izv-stat" style="color:var(--accent)"><b>≈ ${projM3.toLocaleString('bs',{maximumFractionDigits:0})}</b> m³ zaliha u ${izvProjYear}. <span class="izv-proj-badge">PROCJENA</span></span>`:''}
         ${cl>0?`<span class="izv-stat">Čet/Liš: <b style="color:#2c5f2e">${cp.toFixed(0)}%</b> / <b style="color:#8b5e0a">${(100-cp).toFixed(0)}%</b></span>`:''}
       </div>
     </div>
@@ -3478,11 +3480,11 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
     const projM3ha=Math.max(0,o.ukupno_m3ha+prM3ha*brojGodina);
     const projM3=projM3ha*o.povrsina;
     const pUnit=povrsina?'m³':'m³/ha';
-    out+=`<div class="izv-section">
-    <div class="izv-section-title">Zaliha u ${izvProjYear}. godini <span style="font-size:0.6rem;font-weight:400;text-transform:none">(projekcija: zaliha ${DOZNAKA_BASE_YEAR} + prirast &times; ${brojGodina} god.)</span></div>
+    out+=`<div class="izv-section izv-section-proj">
+    <div class="izv-section-title">Zaliha u ${izvProjYear}. godini<span class="izv-proj-badge">PROCJENA</span> <span style="font-size:0.6rem;font-weight:400;text-transform:none">(zaliha ${DOZNAKA_BASE_YEAR} + prirast &times; ${brojGodina} god.)</span></div>
     <div class="izv-meta-row">
-      <span class="izv-stat"><b>${projM3ha.toFixed(2)}</b> m³/ha</span>
-      <span class="izv-stat" style="color:var(--accent)"><b>${projM3.toFixed(2)}</b> m³ za ovaj odsjek <span style="color:var(--text-muted);font-weight:400">(&times; ${o.povrsina.toFixed(2)} ha)</span></span>
+      <span class="izv-stat"><b>≈ ${projM3ha.toFixed(2)}</b> m³/ha</span>
+      <span class="izv-stat" style="color:var(--accent)"><b>≈ ${projM3.toFixed(2)}</b> m³ za ovaj odsjek <span style="color:var(--text-muted);font-weight:400">(&times; ${o.povrsina.toFixed(2)} ha)</span></span>
       ${!pr?`<span class="izv-stat" style="color:var(--text-muted);font-style:italic">Nema podataka o prirastu za GK ${o.gazd_klasa} — zaliha nepromijenjena</span>`:''}
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
@@ -3490,7 +3492,7 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
       <thead><tr><th></th>${IZV_DC.map(d=>`<th>${d}</th>`).join('')}<th>${pUnit}</th></tr></thead>
       <tbody>
       <tr class="izv-total">
-        <td style="font-weight:600">${izvProjYear}.</td>
+        <td style="font-weight:600">≈ ${izvProjYear}.</td>
         ${(povrsina?projDc.map(d=>d*o.povrsina):projDc).map(d=>`<td style="color:${d>0?'var(--accent)':'var(--text-muted)'}">${d>0?d.toFixed(2):'·'}</td>`).join('')}
         <td style="color:var(--accent)">${(povrsina?projM3:projM3ha).toFixed(2)}</td>
       </tr>
@@ -3564,7 +3566,9 @@ function printIzvjestaj(){
     .izv-card-hdr{padding:7px 11px;background:#f2f2f2;border-bottom:1px solid #ccc;}
     .izv-odsjek-num{font-size:12px;font-weight:800;margin-right:10px;}
     .izv-section{padding:7px 11px;border-top:1px solid #e0e0e0;}
+    .izv-section-proj{background:#f4f4f4;border-top:1px solid #999;border-left:3px solid #333;}
     .izv-section-title{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#555;margin-bottom:5px;}
+    .izv-proj-badge{display:inline-block;font-size:6.5px;font-weight:800;letter-spacing:0.06em;color:#fff;background:#333;border-radius:2px;padding:1px 4px;margin-left:5px;}
     .izv-meta-row{display:flex;flex-wrap:wrap;gap:4px 14px;margin-bottom:5px;font-size:9.5px;color:#444;}
     .izv-stat b{font-size:10.5px;color:#111;}
     table{border-collapse:collapse;width:100%;font-size:9px;}
