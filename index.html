@@ -705,7 +705,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
             <option value="1">Visoka šuma (1xxx)</option>
             <option value="3">Kultura (3xxx)</option>
             <option value="4">Izdanačka šuma (4xxx)</option>
-            <option value="5">Neplodne (5xxx)</option>
+            <option value="5">Šibljak (5xxx)</option>
+            <option value="6">Goleti (6xxx)</option>
+            <option value="7">Ostale površine (7xxx)</option>
+            <option value="8">Uzurpacija (8xxx)</option>
           </select>
         </div>
         <div class="field-group" style="width:200px"><label>Sadrži vrstu drveta</label>
@@ -3213,9 +3216,9 @@ function dashGoToGj(gj){
 const IZV_DC = ['0–5','6–10','11–20','21–30','31–50','51–80','>80'];
 const IZV_GK_TIP = {
   1:'Visoka šuma', 2:'Visoka šuma', 3:'Kultura', 4:'Izdanačka šuma',
-  5:'Neplodne površine', 6:'Vodene površine', 7:'Ostale površine', 8:'Ukupno'
+  5:'Šibljak', 6:'Goleti', 7:'Ostale površine', 8:'Uzurpacija'
 };
-const IZV_GK_COL = {1:'#1a5e20',2:'#1a5e20',3:'#1565c0',4:'#6a1e00'};
+const IZV_GK_COL = {1:'#1a5e20',2:'#1a5e20',3:'#1565c0',4:'#6a1e00',5:'#7a8b3a',6:'#8a7860',7:'#5a6268',8:'#a13a3a'};
 
 function izvOdsjekCard(o){
   const tipKey=String(o.gazd_klasa)[0];
