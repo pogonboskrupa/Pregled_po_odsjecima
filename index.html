@@ -3221,8 +3221,18 @@ function izvOdsjekCard(o){
   const tipCol=IZV_GK_COL[tipKey]||'var(--text-muted)';
   const vrste=VRSTE_BY_KEY[gk(o)]||[];
   const pr=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
-  const stab=(typeof STABALA!=='undefined')?
-    STABALA.find(s=>s.gj_br===o.gj_br&&s.od===parseInt(o.odjel)&&s.os===o.odsjek):null;
+  let stab=null;
+  if(typeof STABALA!=='undefined'){
+    const odInt=parseInt(o.odjel);
+    // STABALA nema sufiks prelaznih odjela (npr. "105/1" vs "105/2" — obje
+    // parsiraju na 105), pa spajamo samo kad je par (odjel-broj, odsjek)
+    // jedinstven u ODSJECI — inače bi se ista tabela stabala prikazala za
+    // više različitih odsjeka, što je pogrešno.
+    const siblings=ODSJECI.filter(x=>x.gj===o.gj&&parseInt(x.odjel)===odInt&&x.odsjek===o.odsjek);
+    if(siblings.length===1){
+      stab=STABALA.find(s=>s.gj_br===o.gj_br&&s.od===odInt&&s.os===o.odsjek)||null;
+    }
+  }
   return izvBuildCard(o,tipName,tipCol,vrste,pr,stab);
 }
 
@@ -3236,15 +3246,16 @@ function izvSummaryBox(odsjeci,title){
   const cl=cet+lis, cp=cl>0?cet/cl*100:0;
   const withZ=odsjeci.filter(o=>o.ukupno_m3ha>0).length;
   // prirast: za svaki odsjek m³/ha (GK prosjek) × vlastita površina odsjeka
-  let pr=0,projM3=0,brojGodina=0;
+  let pr=0,projM3=0;
+  const brojGodina=izvProjYear?izvProjYear-DOZNAKA_BASE_YEAR:0;
   odsjeci.forEach(o=>{
     const p=(typeof PRIRAST!=='undefined')?(PRIRAST[o.gj_br]?.[o.gazd_klasa]||null):null;
-    if(p){
-      pr+=p.m3ha*o.povrsina;
-      if(izvProjYear){
-        brojGodina=izvProjYear-DOZNAKA_BASE_YEAR;
-        projM3+=Math.max(0,o.ukupno_m3ha+p.m3ha*brojGodina)*o.povrsina;
-      }
+    if(p)pr+=p.m3ha*o.povrsina;
+    if(izvProjYear&&o.ukupno_m3ha>0){
+      // odsjeci bez izmjerenog prirasta (npr. neplodne/vodene površine) zadržavaju
+      // baznu zalihu (stopa 0), umjesto da ih izbacimo iz zbira — dosljedno sa m3.
+      const rate=p?p.m3ha:0;
+      projM3+=Math.max(0,o.ukupno_m3ha+rate*brojGodina)*o.povrsina;
     }
   });
   return `<div class="izv-card" style="background:var(--surface)">
@@ -3455,10 +3466,16 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
   }
 
   // ── projekcija zalihe za izabranu godinu ──
-  if(pr&&izvProjYear&&o.ukupno_m3ha>0){
+  // Napomena: neke gazd. klase (npr. neplodne/vodene/ostale površine) nemaju
+  // izmjeren prirast — tretiramo im stopu kao 0 (zaliha se ne mijenja) umjesto
+  // da ih izbacimo iz projekcije, jer bi to učinilo zbir u sažetku nedosljednim
+  // sa zbirom bazne zalihe (koji te odsjeke uračunava).
+  if(izvProjYear&&o.ukupno_m3ha>0){
     const brojGodina=izvProjYear-DOZNAKA_BASE_YEAR;
-    const projDc=o.dc.map((d,i)=>Math.max(0,d+(pr.dc[i]||0)*brojGodina));
-    const projM3ha=Math.max(0,o.ukupno_m3ha+pr.m3ha*brojGodina);
+    const prDc=pr?pr.dc:IZV_DC.map(()=>0);
+    const prM3ha=pr?pr.m3ha:0;
+    const projDc=o.dc.map((d,i)=>Math.max(0,d+(prDc[i]||0)*brojGodina));
+    const projM3ha=Math.max(0,o.ukupno_m3ha+prM3ha*brojGodina);
     const projM3=projM3ha*o.povrsina;
     const pUnit=povrsina?'m³':'m³/ha';
     out+=`<div class="izv-section">
@@ -3466,6 +3483,7 @@ function izvBuildCard(o,tipName,tipCol,vrste,pr,stab){
     <div class="izv-meta-row">
       <span class="izv-stat"><b>${projM3ha.toFixed(2)}</b> m³/ha</span>
       <span class="izv-stat" style="color:var(--accent)"><b>${projM3.toFixed(2)}</b> m³ za ovaj odsjek <span style="color:var(--text-muted);font-weight:400">(&times; ${o.povrsina.toFixed(2)} ha)</span></span>
+      ${!pr?`<span class="izv-stat" style="color:var(--text-muted);font-style:italic">Nema podataka o prirastu za GK ${o.gazd_klasa} — zaliha nepromijenjena</span>`:''}
     </div>
     <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
     <table class="izv-tbl">
