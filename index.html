@@ -222,6 +222,10 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sj-card-pov{font-size:0.67rem;color:var(--text-dim);margin-top:2px;font-weight:600;}
 .sj-card-del{position:absolute;top:3px;right:5px;font-size:0.62rem;color:#aaa;cursor:pointer;}
 .sj-card-del:hover{color:#c00;}
+.sj-year-chip{display:inline-block;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:10px;margin:1px 3px 1px 0;font-variant-numeric:tabular-nums;}
+.sj-year-chip-real{background:#e8f0e8;color:#1a4a1c;border:1px solid #b8d4b8;}
+.sj-year-chip-plan{background:#f0f5f0;color:#4a7c2e;border:1px dashed #7fb87f;}
+.sj-year-chip-custom{background:#e8eef8;color:#1a4a8b;border:1px solid #a8b8d8;}
 .sj-add-area{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:12px 14px;}
 .sj-add-title{font-size:0.63rem;text-transform:uppercase;letter-spacing:0.09em;color:var(--text-muted);font-weight:700;margin-bottom:9px;}
 .sj-add-form{display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end;}
@@ -661,6 +665,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
   <div class="subtab active" id="sj-tab-godinama" onclick="sjSwitchSub('godinama')">Po godinama</div>
   <div class="subtab" id="sj-tab-gantt" onclick="sjSwitchSub('gantt')">Vremenska crta</div>
   <div class="subtab" id="sj-tab-doznaka" onclick="sjSwitchSub('doznaka')">Zaliha u vrijeme sječe</div>
+  <div class="subtab" id="sj-tab-spisak" onclick="sjSwitchSub('spisak')">Spisak odjela</div>
 </div>
 
 <div class="app-body">
@@ -931,6 +936,36 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
         <th class="num">Zaliha u god. doznake (m³/ha)</th>
         <th class="num">Zaliha u god. doznake (m³)</th>
       </tr></thead><tbody id="doznaka-body"></tbody></table></div>
+    </div>
+  </div>
+  <!-- Sub-panel: Spisak odjela -->
+  <div id="sj-sub-spisak" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
+    <div class="panel-inner">
+      <div class="filter-card" id="fc-spisak">
+        <div class="filter-card-title" onclick="toggleFilterCard('fc-spisak')">
+          <span class="fc-label">▸ Filteri</span>
+          <span class="filter-card-toggle">▾</span>
+        </div>
+        <div class="filter-card-body">
+        <div class="filter-row">
+          <div class="field-group" style="min-width:195px"><label>Gospodarska jedinica</label><select id="spisak-gj" onchange="renderSjSpisak()"><option value="">— Sve GJ —</option><option>BAŠTRA-ĆORKOVAČA</option><option>GOMILA</option><option>GRMEČ-JASENICA</option><option>RISOVAC-KRUPA</option><option>VOJSKOVA</option></select></div>
+          <div class="field-group" style="width:100px"><label>Odjel</label><input type="text" id="spisak-odjel" placeholder="npr. 009" oninput="renderSjSpisak()"></div>
+        </div>
+        </div>
+      </div>
+      <div class="results-bar">
+        <div class="results-meta" id="spisak-meta"></div>
+        <div class="sj-legend" style="margin-left:0">
+          <div class="sj-leg-item"><div class="sj-dot sj-dot-real"></div>Ostvareno</div>
+          <div class="sj-leg-item"><div class="sj-dot sj-dot-plan"></div>Planirano</div>
+          <div class="sj-leg-item"><div class="sj-dot sj-dot-custom"></div>Dodano ručno</div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;overflow:hidden;padding:0 20px 0;min-height:0;">
+      <div class="table-scroll"><table><thead><tr>
+        <th>Gospod. jedinica</th><th>Odjel</th><th class="num">Površina (ha)</th><th>Godine sječe</th>
+      </tr></thead><tbody id="spisak-body"></tbody></table></div>
     </div>
   </div>
 </div>
@@ -2152,12 +2187,14 @@ let sjCustom = sjLoad(), sjActiveYear = null, sjActiveSub = 'godinama', ganttMin
 
 function sjSwitchSub(sub){
   sjActiveSub=sub;
-  ['godinama','gantt','doznaka'].forEach(s=>document.getElementById('sj-tab-'+s).classList.toggle('active',s===sub));
+  ['godinama','gantt','doznaka','spisak'].forEach(s=>document.getElementById('sj-tab-'+s).classList.toggle('active',s===sub));
   document.getElementById('sj-sub-godinama').style.display=sub==='godinama'?'flex':'none';
   document.getElementById('sj-sub-gantt').style.display=sub==='gantt'?'flex':'none';
   document.getElementById('sj-sub-doznaka').style.display=sub==='doznaka'?'flex':'none';
+  document.getElementById('sj-sub-spisak').style.display=sub==='spisak'?'flex':'none';
   if(sub==='gantt')renderGantt();
   if(sub==='doznaka')renderSjDoznaka();
+  if(sub==='spisak')renderSjSpisak();
 }
 
 // Group SJ_DATA by odjel (merge odsjeci into one entry per odjel)
@@ -2178,6 +2215,61 @@ function sjByOdjel(gjFilter, min10Filter) {
     years_plan: [...o.years_plan].sort(),
     pov_total: Math.round(o.pov_total * 10) / 10
   }));
+}
+
+// Spisak svih odjela sa svim godinama sječe koje su ikad upisane za taj
+// odjel — iz ugrađenih podataka (SJ_DATA) i iz svih ručno dodanih unosa
+// (sjCustom), preko svih godina, ne samo trenutno izabrane.
+function sjAllOdjeliList(gjFilter, odjelFilter) {
+  const map = {};
+  SJ_DATA.forEach(e => {
+    if (gjFilter && e.gj !== gjFilter) return;
+    if (odjelFilter && !String(e.odjel).toLowerCase().includes(odjelFilter)) return;
+    const key = e.gj + '|' + e.odjel;
+    if (!map[key]) map[key] = { gj: e.gj, odjel: e.odjel, real: new Set(), plan: new Set(), custom: new Set(), pov: 0 };
+    e.years_real.forEach(y => map[key].real.add(y));
+    e.years_plan.forEach(y => map[key].plan.add(y));
+    map[key].pov += (e.pov || 0);
+  });
+  Object.entries(sjCustom).forEach(([year, arr]) => {
+    (arr || []).forEach(e => {
+      if (gjFilter && e.gj !== gjFilter) return;
+      if (odjelFilter && !String(e.odjel).toLowerCase().includes(odjelFilter)) return;
+      const key = (e.gj || '—') + '|' + e.odjel;
+      if (!map[key]) map[key] = { gj: e.gj || '—', odjel: e.odjel, real: new Set(), plan: new Set(), custom: new Set(), pov: 0 };
+      map[key].custom.add(parseInt(year));
+      if (!map[key].pov && e.pov) map[key].pov = e.pov;
+    });
+  });
+  return Object.values(map).map(o => ({
+    ...o,
+    real: [...o.real].sort((a, b) => a - b),
+    plan: [...o.plan].sort((a, b) => a - b),
+    custom: [...o.custom].sort((a, b) => a - b),
+    pov: Math.round(o.pov * 10) / 10
+  })).sort((a, b) => a.gj.localeCompare(b.gj) || String(a.odjel).localeCompare(String(b.odjel), undefined, { numeric: true }));
+}
+
+function renderSjSpisak() {
+  const gj = document.getElementById('spisak-gj').value;
+  const odjelF = document.getElementById('spisak-odjel').value.trim().toLowerCase();
+  const data = sjAllOdjeliList(gj, odjelF);
+  document.getElementById('spisak-meta').innerHTML = `Prikazano <strong>${data.length}</strong> odjela`;
+  const tbody = document.getElementById('spisak-body');
+  tbody.innerHTML = data.map(o => {
+    const all = [
+      ...o.real.map(y => ({ y, cls: 'sj-year-chip-real' })),
+      ...o.plan.map(y => ({ y, cls: 'sj-year-chip-plan' })),
+      ...o.custom.map(y => ({ y, cls: 'sj-year-chip-custom' })),
+    ].sort((a, b) => a.y - b.y);
+    const chips = all.map(c => `<span class="sj-year-chip ${c.cls}">${c.y}</span>`).join('');
+    return `<tr class="clickable" onclick="sjDetailOpen('${o.gj}','${o.odjel}')">
+      <td class="gj">${o.gj}</td>
+      <td class="code">${o.odjel}</td>
+      <td class="num dim">${o.pov ? o.pov.toFixed(1) : '—'}</td>
+      <td>${chips || '<span style="color:var(--text-muted);font-style:italic">Nema upisanih godina.</span>'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function sjCountYear(year) {
@@ -2284,7 +2376,6 @@ function renderSjekored() {
       <div class="field-group" id="sj-in-godina2-wrap" style="width:110px;display:none"><label>Druga godina</label><select id="sj-in-godina2">${godina2Opts}</select></div>
       <button class="btn" onclick="sjAdd(${year})">Dodaj</button>
     </div>
-    <div style="font-size:0.66rem;color:var(--text-muted);margin-top:7px;">💡 <strong>Prelazni odjel</strong> — sječe se u dvije godine (npr. počinje u zimu, nastavlja u proljeće): uključi ↔ Prelazni i odaberi drugu godinu — odjel se doda u oba unosa.</div>
     ${!customEntries.length ? '<div class="sj-no-custom">Nema ručno dodanih unosa za ' + year + '.</div>' : ''}
   </div>`;
   content.innerHTML = html;
