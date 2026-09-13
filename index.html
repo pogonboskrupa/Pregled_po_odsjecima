@@ -2253,36 +2253,70 @@ function renderSjekored() {
   // Custom entries
   const customEntries = (sjCustom[year] || []).filter(e => !gj || e.gj === gj);
   if (customEntries.length) {
-    const cards = customEntries.map((e, i) => `<div class="sj-card sj-card-custom">
-      <span class="sj-card-del" onclick="sjRemove(${year},${i})">✕</span>
-      <div class="sj-card-odjel">Odjel ${e.odjel}</div>
+    const cards = customEntries.map(e => {
+      // Indeks se traži u NEfiltriranom nizu (sjCustom[year]) jer GJ filter
+      // mijenja poziciju u customEntries — brisanje po pogrešnom indeksu bi
+      // obrisalo drugi unos.
+      const realIdx = sjCustom[year].indexOf(e);
+      const prelazniDot = e.prelazni ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
+      const prelazniNote = e.prelazni && e.prelazniOther ? ' · ↔ prelazni sa ' + e.prelazniOther + '.' : '';
+      return `<div class="sj-card sj-card-custom">
+      <span class="sj-card-del" onclick="sjRemove(${year},${realIdx})">✕</span>
+      <div class="sj-card-odjel">Odjel ${e.odjel}${prelazniDot}</div>
       <div class="sj-card-sub">${e.gj || '—'}</div>
-      <div class="sj-card-pov">${e.pov ? e.pov + ' ha' : ''}${e.napomena ? ' · ' + e.napomena : ''}</div>
-    </div>`).join('');
+      <div class="sj-card-pov">${e.pov ? e.pov + ' ha' : ''}${e.napomena ? ' · ' + e.napomena : ''}${prelazniNote}</div>
+    </div>`;
+    }).join('');
     html += `<div class="sj-gj-section"><div class="sj-gj-title">Ručno dodano</div><div class="sj-cards">${cards}</div></div>`;
   }
 
   const gjOpts = ['BAŠTRA-ĆORKOVAČA','GOMILA','GRMEČ-JASENICA','RISOVAC-KRUPA','VOJSKOVA'].map(g => `<option>${g}</option>`).join('');
+  const otherYears = SJ_ALL_YEARS.filter(y => y !== year).sort((a, b) => a - b);
+  const defaultOther = otherYears.includes(year + 1) ? year + 1 : (otherYears.includes(year - 1) ? year - 1 : otherYears[0]);
+  const godina2Opts = otherYears.map(y => `<option value="${y}"${y === defaultOther ? ' selected' : ''}>${y}.</option>`).join('');
   html += `<div class="sj-add-area"><div class="sj-add-title">+ Dodaj odjel za ${year}. godinu</div>
     <div class="sj-add-form">
       <div class="field-group" style="width:85px"><label>Odjel</label><input type="text" id="sj-in-odjel" placeholder="55"></div>
       <div class="field-group" style="width:178px"><label>Gospodarska jedinica</label><select id="sj-in-gj"><option value="">— odaberi —</option>${gjOpts}</select></div>
       <div class="field-group" style="width:75px"><label>Površina (ha)</label><input type="number" id="sj-in-pov" placeholder="0.0" step="0.1"></div>
       <div class="field-group" style="width:150px"><label>Napomena</label><input type="text" id="sj-in-nap" placeholder="opciono"></div>
+      <label class="toggle-chip" id="sj-in-prelazni-chip" onclick="sjTogglePrelazni()" style="margin-top:auto"><span id="sj-in-prelazni-icon">◆</span> ↔ Prelazni (2 godine)</label>
+      <div class="field-group" id="sj-in-godina2-wrap" style="width:110px;display:none"><label>Druga godina</label><select id="sj-in-godina2">${godina2Opts}</select></div>
       <button class="btn" onclick="sjAdd(${year})">Dodaj</button>
     </div>
+    <div style="font-size:0.66rem;color:var(--text-muted);margin-top:7px;">💡 <strong>Prelazni odjel</strong> — sječe se u dvije godine (npr. počinje u zimu, nastavlja u proljeće): uključi ↔ Prelazni i odaberi drugu godinu — odjel se doda u oba unosa.</div>
     ${!customEntries.length ? '<div class="sj-no-custom">Nema ručno dodanih unosa za ' + year + '.</div>' : ''}
   </div>`;
   content.innerHTML = html;
 }
 
+function sjTogglePrelazni() {
+  const on = document.getElementById('sj-in-prelazni-chip').classList.toggle('on');
+  document.getElementById('sj-in-godina2-wrap').style.display = on ? 'flex' : 'none';
+}
+
 function sjAdd(year) {
   const od = document.getElementById('sj-in-odjel').value.trim();
   if (!od) { showToast('Unesite broj odjela.'); return; }
+  const gj = document.getElementById('sj-in-gj').value;
+  const pov = parseFloat(document.getElementById('sj-in-pov').value) || null;
+  const napomena = document.getElementById('sj-in-nap').value.trim();
+  const isPrelazni = document.getElementById('sj-in-prelazni-chip').classList.contains('on');
+  const godina2 = isPrelazni ? parseInt(document.getElementById('sj-in-godina2').value) : null;
+
   if (!sjCustom[year]) sjCustom[year] = [];
-  sjCustom[year].push({ odjel: od, odsjek: 0, gj: document.getElementById('sj-in-gj').value, pov: parseFloat(document.getElementById('sj-in-pov').value) || null, napomena: document.getElementById('sj-in-nap').value.trim() });
+  sjCustom[year].push({ odjel: od, odsjek: 0, gj, pov, napomena, prelazni: isPrelazni, prelazniOther: godina2 });
+
+  if (isPrelazni && godina2 && godina2 !== year) {
+    if (!sjCustom[godina2]) sjCustom[godina2] = [];
+    sjCustom[godina2].push({ odjel: od, odsjek: 0, gj, pov, napomena, prelazni: true, prelazniOther: year });
+  }
+
   sjSave();
-  renderSjekored(); showToast('Odjel ' + od + ' dodan za ' + year + '.');
+  renderSjekored();
+  showToast(isPrelazni && godina2 && godina2 !== year
+    ? 'Odjel ' + od + ' dodan kao prelazni za ' + year + '. i ' + godina2 + '.'
+    : 'Odjel ' + od + ' dodan za ' + year + '.');
 }
 function sjRemove(year, idx) { sjCustom[year].splice(idx, 1); sjSave(); renderSjekored(); }
 
