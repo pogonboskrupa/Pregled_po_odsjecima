@@ -258,6 +258,10 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .gc-plan{background:#a8d4a8;border:1px dashed #4a8f4a;}
 .gc-custom{background:#1a4a8b;}
 .gc-empty{background:transparent;}
+.gc-clickable{cursor:pointer;transition:all 0.1s;}
+.gc-clickable.gc-empty{border:1px dashed transparent;}
+.gc-clickable.gc-empty:hover{background:#dce8dc;border-color:#7fa87f;}
+.gc-clickable.gc-custom:hover{background:#c0392b;}
 .gantt-table .gj-header-row td{background:#e8f0e8;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);padding:4px 10px;border-bottom:1px solid var(--border);}
 
 /* TOAST */
@@ -2438,18 +2442,37 @@ function renderGantt() {
       years.forEach(y => {
         const isReal = e.years_real.includes(y);
         const isPlan = e.years_plan.includes(y);
-        const isCust = (sjCustom[y] || []).some(c => c.odjel === e.odjel);
-        let cls = 'gc-empty', title = '';
+        const isCust = (sjCustom[y] || []).some(c => c.odjel === e.odjel && c.gj === e.gj);
+        let cls = 'gc-empty', title = 'Klikni da dodaš ' + y + '.';
         if (isReal) { cls = 'gc-real'; title = 'Ostvareno ' + y; }
         else if (isPlan) { cls = 'gc-plan'; title = 'Planirano ' + y; }
-        else if (isCust) { cls = 'gc-custom'; title = 'Dodano ' + y; }
-        html += `<td><div class="gantt-cell ${cls}" title="${title}"></div></td>`;
+        else if (isCust) { cls = 'gc-custom'; title = 'Dodano ' + y + ' (klikni za uklanjanje)'; }
+        const clickable = (cls === 'gc-empty' || cls === 'gc-custom');
+        const onclick = clickable ? ` onclick="ganttCellClick('${e.gj}','${e.odjel}',${y},${e.pov_total || 'null'})"` : '';
+        html += `<td><div class="gantt-cell ${cls}${clickable ? ' gc-clickable' : ''}" title="${title}"${onclick}></div></td>`;
       });
       html += '</tr>';
     });
   });
   html += '</tbody></table>';
   document.getElementById('gantt-inner').innerHTML = html;
+}
+
+// Klik na praznu ćeliju dodaje odjel kao ručni unos za tu godinu; klik na
+// već ručno dodanu ćeliju je uklanja (toggle). Ostvarene/planirane ćelije
+// (iz elaborata) nisu klikabilne — ne mijenjaju se ovako.
+function ganttCellClick(gj, odjel, year, pov) {
+  if (!sjCustom[year]) sjCustom[year] = [];
+  const idx = sjCustom[year].findIndex(c => c.odjel === odjel && c.gj === gj);
+  if (idx >= 0) {
+    sjCustom[year].splice(idx, 1);
+    showToast('Odjel ' + odjel + ' uklonjen za ' + year + '.');
+  } else {
+    sjCustom[year].push({ odjel, odsjek: 0, gj, pov: pov || null, napomena: '', prelazni: false, prelazniOther: null });
+    showToast('Odjel ' + odjel + ' dodan za ' + year + '.');
+  }
+  sjSave();
+  renderGantt();
 }
 
 // ── UTILS ──
