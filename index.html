@@ -1662,6 +1662,14 @@ function exportCSV(){
     headers=['GJ','Odjel','Odsjek','Površina (ha)','Vrsta','Omjer (%)','Bonitet','m³/ha (vrsta)'];
     rows=vData.map(o=>[o.gj,o.odjel,o.odsjek,o.povrsina,o.v_naziv||'',o.v_omjer,o.v_bonitet||'',o.v_m3ha]);
     filename='rangiranje_po_vrsti';
+  } else if(tab==='prirast'){
+    headers=['GJ','Odjel','Odsjek','Površina (ha)','Gazd. klasa','Prirast (m³/ha/god)','Prirast (m³/god)','0-5','6-10','11-20','21-30','31-50','51-80','>80','Zaliha (m³/ha)'];
+    rows=prCurrent.map(o=>[o.gj,o.odjel,o.odsjek,o.povrsina,o.gazd_klasa||'',o._pr?o.pr_m3ha:'',o._pr?o.pr_m3:'',...(o._pr?o._pr.dc:['','','','','','','']),o.ukupno_m3ha]);
+    filename='zapreminski_prirast';
+  } else if(tab==='stabla'){
+    headers=['GJ','Odjel','Odsjek','Površina (ha)','Gazd. klasa','0-5','6-10','11-20','21-30','31-50','51-80','>80','Ukupno N/ha','Temeljnica (m²/ha)'];
+    rows=stCurrent.map(r=>[r.gj,r.od,r.os,r.p,r.gk,...r.dc,r.uk,r.tem]);
+    filename='broj_stabala';
   } else {
     showToast('CSV export nije dostupan za ovaj prikaz.');return;
   }
@@ -1690,6 +1698,20 @@ function exportData(){
       rows:vData.map(o=>[o.gj,o.odjel,o.odsjek,o.povrsina,o.v_naziv||'',o.v_omjer,o.v_bonitet||'',o.v_m3ha]),
       numericIdx:[3,5,6,7],
       filename:'rangiranje_po_vrsti', sheet:'Po vrsti'
+    };
+  } else if(tab==='prirast'){
+    return {
+      headers:['GJ','Odjel','Odsjek','Povr\u0161ina (ha)','Gazd. klasa','Prirast (m\u00B3/ha/god)','Prirast (m\u00B3/god)','0-5','6-10','11-20','21-30','31-50','51-80','>80','Zaliha (m\u00B3/ha)'],
+      rows:prCurrent.map(o=>[o.gj,o.odjel,o.odsjek,o.povrsina,o.gazd_klasa||'',o._pr?o.pr_m3ha:'',o._pr?o.pr_m3:'',...(o._pr?o._pr.dc:['','','','','','','']),o.ukupno_m3ha]),
+      numericIdx:[3,4,5,6,7,8,9,10,11,12,13,14],
+      filename:'zapreminski_prirast', sheet:'Prirast'
+    };
+  } else if(tab==='stabla'){
+    return {
+      headers:['GJ','Odjel','Odsjek','Povr\u0161ina (ha)','Gazd. klasa','0-5','6-10','11-20','21-30','31-50','51-80','>80','Ukupno N/ha','Temeljnica (m\u00B2/ha)'],
+      rows:stCurrent.map(r=>[r.gj,r.od,r.os,r.p,r.gk,...r.dc,r.uk,r.tem]),
+      numericIdx:[3,4,5,6,7,8,9,10,11,12,13],
+      filename:'broj_stabala', sheet:'Stabala'
     };
   }
   return null;
@@ -1721,7 +1743,8 @@ function exportXLS(){
 // ── PRINT ──
 function printView(){
   const tab=TAB_NAMES.find((_,i)=>document.querySelectorAll('.tab')[i].classList.contains('active'));
-  document.getElementById('print-info').textContent=new Date().toLocaleDateString('bs-BA')+ ' · '+{search:'Pretraga odsjeka',vrste:'Rangiranje po vrsti',zaliha:'Rangiranje po zalihi',sjekored:'Sjekored'}[tab];
+  const tabLabels={pregled:'Pregled',search:'Pretraga odsjeka',vrste:'Rangiranje po vrsti',zaliha:'Rangiranje po zalihi',sjekored:'Sjekored',prirast:'Zapreminski prirast',stabla:'Broj stabala',izvjestaj:'Izvještaj'};
+  document.getElementById('print-info').textContent=new Date().toLocaleDateString('bs-BA')+ ' · '+(tabLabels[tab]||'');
   window.print();
 }
 
@@ -2915,6 +2938,7 @@ function buildExpandGK(r){
 
 // ── PRIRAST ──
 let prND=false; // toggle: prikaži samo odsjeke s podacima
+let prCurrent=[];
 function togglePrirastND(){
   prND=!prND;
   document.getElementById('pr-chip-nd').classList.toggle('active',prND);
@@ -2944,6 +2968,7 @@ function renderPrirast(){
   data.sort((a,b)=>b[sc]-a[sc]);
   const total=data.length;
   if(top>0)data=data.slice(0,top);
+  prCurrent=data;
 
   document.getElementById('prirast-meta').innerHTML=
     `Prikazano <strong>${data.length}</strong> od <strong>${total}</strong> odsjeka`+
@@ -3060,6 +3085,7 @@ restoreHash();
 <script>
 // ── BROJ STABALA ──
 let stExpandedKey=null;
+let stCurrent=[];
 
 function renderStabala(){
   if(typeof STABALA==='undefined'){
@@ -3072,13 +3098,14 @@ function renderStabala(){
 
   let data=[...STABALA];
   if(gjSel) data=data.filter(r=>r.gj===gjSel);
-  if(odSel) data=data.filter(r=>String(r.od)===odSel);
+  if(odSel) data=data.filter(r=>String(r.od).includes(odSel));
 
   if(sortSel==='uk') data.sort((a,b)=>b.uk-a.uk);
   else if(sortSel==='tem') data.sort((a,b)=>b.tem-a.tem);
   else data.sort((a,b)=>a.gj_br-b.gj_br||a.od-b.od||a.os-b.os);
 
   const total=data.length;
+  stCurrent=data;
   const totN=data.reduce((s,r)=>s+r.uk,0);
   document.getElementById('stabla-meta').innerHTML=
     `<strong>${total.toLocaleString('bs')}</strong> odsjeka · Σ N/ha (prosjek): <strong>${total?Math.round(totN/total).toLocaleString('bs'):'—'}</strong>`;
