@@ -52,17 +52,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14
 .breadcrumb span{color:var(--accent);font-weight:600;}
 
 /* MAIN TABS */
-.tabs{background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;display:flex;flex-shrink:0;overflow-x:auto;}
-.tab{padding:10px 16px;font-size:0.73rem;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.15s;letter-spacing:0.03em;text-transform:uppercase;white-space:nowrap;}
-.tab:hover{color:var(--text-dim);background:var(--surface2);}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
+.tabs{background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;display:flex;gap:2px;flex-shrink:0;overflow-x:auto;}
+.tab{padding:12px 18px;font-size:0.8rem;font-weight:800;color:var(--text-dim);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all 0.15s;letter-spacing:0.035em;text-transform:uppercase;white-space:nowrap;border-radius:5px 5px 0 0;}
+.tab:hover{color:var(--accent);background:var(--accent-pale);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-pale);box-shadow:inset 0 1px 0 var(--border);}
 
 /* SUBTABS (Sjekored) */
-.subtabs{background:var(--surface2);border-bottom:1px solid var(--border);padding:0 20px;display:none;flex-shrink:0;}
+.subtabs{background:var(--surface2);border-bottom:1px solid var(--border);padding:0 20px;display:none;gap:2px;flex-shrink:0;}
 .subtabs.visible{display:flex;}
-.subtab{padding:7px 14px;font-size:0.7rem;font-weight:700;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.12s;letter-spacing:0.04em;text-transform:uppercase;}
-.subtab:hover{color:var(--text-dim);}
-.subtab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.subtab{padding:8px 15px;font-size:0.75rem;font-weight:800;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.12s;letter-spacing:0.045em;text-transform:uppercase;border-radius:4px 4px 0 0;}
+.subtab:hover{color:var(--accent);background:var(--surface);}
+.subtab.active{color:var(--accent);border-bottom-color:var(--accent);background:var(--surface);}
 
 /* LAYOUT */
 .app-body{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
@@ -318,7 +318,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   .header-actions{gap:4px;}
   .hbtn span{display:none;}
   .tabs{padding:0 6px;}
-  .tab{padding:9px 10px;font-size:0.66rem;}
+  .tab{padding:10px 11px;font-size:0.71rem;}
   .app-body{overflow:visible;height:auto;flex:1;}
   .panel{height:auto;overflow:visible;}
   .panel.active{display:flex;flex-direction:column;}
@@ -2130,7 +2130,10 @@ function renderSjDoznaka(){
 // ── SJEKORED ──
 const SJ_YEARS_REAL=[2012,2013,2014,2015,2016];
 const SJ_YEARS_PLAN=[2017,2018,2019,2020,2021,2026];
-const SJ_YEARS_CUSTOM=[2027];
+// Godine bez zvaničnog plana u elaboratu (2022–2025 nedostaju iz plana,
+// 2027–2030 su dodatne buduće godine) — i dalje dostupne za ručno
+// praćenje sječe, jer se odjeli u praksi ne sijeku strogo na 10 godina.
+const SJ_YEARS_CUSTOM=[2022,2023,2024,2025,2027,2028,2029,2030];
 const SJ_ALL_YEARS=[...SJ_YEARS_REAL,...SJ_YEARS_PLAN,...SJ_YEARS_CUSTOM];
 // ── PERZISTENCIJA (localStorage) ──
 const SJ_STORAGE_KEY = 'elaborat_sjekored_custom_v1';
@@ -2331,7 +2334,7 @@ function sjInit() {
   }
   mkSep('Ostvareno'); SJ_YEARS_REAL.forEach(y => mkBtn(y, ''));
   mkSep('Planirano'); SJ_YEARS_PLAN.forEach(y => mkBtn(y, ''));
-  mkSep('Tekuće / Buduće'); SJ_YEARS_CUSTOM.forEach(y => mkBtn(y, 'future'));
+  mkSep('Dodatne godine (bez plana)'); SJ_YEARS_CUSTOM.forEach(y => mkBtn(y, 'future'));
 }
 
 function sjSelectYear(year) {
