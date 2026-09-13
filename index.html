@@ -2189,6 +2189,17 @@ function sjClearAll() {
 
 let sjCustom = sjLoad(), sjActiveYear = null, sjActiveSub = 'godinama', ganttMin10 = false;
 
+// Ručno dodani unosi (odjel, GJ, napomena) su slobodan tekst — mogu doći i
+// iz uvezenog JSON plana (Import plan), pa se moraju eskejpovati prije
+// ugradnje u HTML/atribute, inače je moguće ubaciti tag ili prekinuti
+// onclick="fn('...')" poziv i izvršiti proizvoljan JS.
+function sjEscText(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function sjEscAttr(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;').replace(/[\n\r]/g,' ');
+}
+
 function sjSwitchSub(sub){
   sjActiveSub=sub;
   ['godinama','gantt','doznaka','spisak'].forEach(s=>document.getElementById('sj-tab-'+s).classList.toggle('active',s===sub));
@@ -2267,9 +2278,9 @@ function renderSjSpisak() {
       ...o.custom.map(y => ({ y, cls: 'sj-year-chip-custom' })),
     ].sort((a, b) => a.y - b.y);
     const chips = all.map(c => `<span class="sj-year-chip ${c.cls}">${c.y}</span>`).join('');
-    return `<tr class="clickable" onclick="sjDetailOpen('${o.gj}','${o.odjel}')">
-      <td class="gj">${o.gj}</td>
-      <td class="code">${o.odjel}</td>
+    return `<tr class="clickable" onclick="sjDetailOpen('${sjEscAttr(o.gj)}','${sjEscAttr(o.odjel)}')">
+      <td class="gj">${sjEscText(o.gj)}</td>
+      <td class="code">${sjEscText(o.odjel)}</td>
       <td class="num dim">${o.pov ? o.pov.toFixed(1) : '—'}</td>
       <td>${chips || '<span style="color:var(--text-muted);font-style:italic">Nema upisanih godina.</span>'}</td>
     </tr>`;
@@ -2278,9 +2289,11 @@ function renderSjSpisak() {
 
 function sjCountYear(year) {
   const gj = document.getElementById('sj-gj')?.value || '';
-  if (SJ_YEARS_CUSTOM.includes(year)) return (sjCustom[year] || []).filter(e => !gj || e.gj === gj).length;
+  const customCount = (sjCustom[year] || []).filter(e => !gj || e.gj === gj).length;
+  if (SJ_YEARS_CUSTOM.includes(year)) return customCount;
   const key = SJ_YEARS_REAL.includes(year) ? 'years_real' : 'years_plan';
-  return sjByOdjel(gj, false).filter(e => e[key].includes(year)).length;
+  const builtinCount = sjByOdjel(gj, false).filter(e => e[key].includes(year)).length;
+  return builtinCount + customCount;
 }
 
 function sjInit() {
@@ -2358,9 +2371,9 @@ function renderSjekored() {
       const prelazniNote = e.prelazni && e.prelazniOther ? ' · ↔ prelazni sa ' + e.prelazniOther + '.' : '';
       return `<div class="sj-card sj-card-custom">
       <span class="sj-card-del" onclick="sjRemove(${year},${realIdx})">✕</span>
-      <div class="sj-card-odjel">Odjel ${e.odjel}${prelazniDot}</div>
-      <div class="sj-card-sub">${e.gj || '—'}</div>
-      <div class="sj-card-pov">${e.pov ? e.pov + ' ha' : ''}${e.napomena ? ' · ' + e.napomena : ''}${prelazniNote}</div>
+      <div class="sj-card-odjel">Odjel ${sjEscText(e.odjel)}${prelazniDot}</div>
+      <div class="sj-card-sub">${sjEscText(e.gj || '—')}</div>
+      <div class="sj-card-pov">${e.pov ? e.pov + ' ha' : ''}${e.napomena ? ' · ' + sjEscText(e.napomena) : ''}${prelazniNote}</div>
     </div>`;
     }).join('');
     html += `<div class="sj-gj-section"><div class="sj-gj-title">Ručno dodano</div><div class="sj-cards">${cards}</div></div>`;
