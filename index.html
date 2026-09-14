@@ -243,7 +243,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .zoom-btn:hover{background:rgba(255,255,255,0.25);}
 .zoom-level{font-size:0.68rem;color:rgba(255,255,255,0.7);font-weight:600;min-width:36px;text-align:center;font-variant-numeric:tabular-nums;}
 .gantt-topbar{padding:10px 18px 8px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
-.gantt-table{border-collapse:collapse;font-size:0.74rem;background:var(--surface);border:1px solid var(--border);border-radius:6px;overflow:hidden;min-width:100%;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+.gantt-table{border-collapse:collapse;font-size:0.74rem;background:var(--surface);border:1px solid var(--border);min-width:100%;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
 .gantt-table th{background:#2c5f2e;color:rgba(255,255,255,0.88);padding:7px 10px;text-align:center;font-size:0.61rem;font-weight:700;letter-spacing:0.06em;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.12);position:sticky;top:0;z-index:3;}
 .gantt-table th.th-odjel{text-align:left;min-width:110px;position:sticky;left:0;z-index:4;}
 .gantt-table th.th-gj{text-align:left;min-width:150px;position:sticky;left:110px;z-index:4;}
@@ -885,7 +885,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
   <!-- Sub-panel: Gantt -->
   <div id="sj-sub-gantt" style="display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;">
     <div class="gantt-topbar">
-      <div class="sj-year-title">Vremenska crta — Sjekored 2012–2027</div>
+      <div class="sj-year-title" id="gantt-title">Vremenska crta</div>
       <div class="field-group" style="width:190px"><label style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);font-weight:700;">Filtriraj GJ</label><select id="gantt-gj" onchange="renderGantt()" style="height:27px;font-size:0.77rem;"><option value="">— Sve GJ —</option><option>BAŠTRA-ĆORKOVAČA</option><option>GOMILA</option><option>GRMEČ-JASENICA</option><option>RISOVAC-KRUPA</option><option>VOJSKOVA</option></select></div>
       <label class="toggle-chip" id="gantt-chip-10" onclick="toggleGanttMin10()" style="height:27px;"><span id="gantt-chip-icon">◆</span> ≥ 10 ha</label>
       <div class="gantt-zoom-controls">
@@ -893,11 +893,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
         <span class="zoom-level" id="gantt-zoom-label">100%</span>
         <button class="zoom-btn" onclick="ganttZoom(+1)" title="Povećaj">+</button>
         <button class="zoom-btn" onclick="ganttZoom(0)" title="Resetuj" style="width:auto;padding:0 8px;font-size:0.65rem;">↺</button>
-      </div>
-      <div class="sj-legend">
-        <div class="sj-leg-item"><div class="sj-dot sj-dot-real"></div>Ostvareno</div>
-        <div class="sj-leg-item"><div class="sj-dot sj-dot-plan"></div>Planirano</div>
-        <div class="sj-leg-item"><div class="sj-dot sj-dot-custom"></div>Dodano ručno</div>
       </div>
     </div>
     <div class="gantt-wrap" id="gantt-wrap"><div class="gantt-inner" id="gantt-inner"></div></div>
@@ -2464,7 +2459,9 @@ function toggleGanttMin10() {
 }
 function renderGantt() {
   const gj = document.getElementById('gantt-gj').value;
-  const years = SJ_ALL_YEARS;
+  const years = [...SJ_ALL_YEARS].sort((a, b) => a - b);
+  const titleEl = document.getElementById('gantt-title');
+  if (titleEl) titleEl.textContent = `Vremenska crta — Sjekored ${years[0]}–${years[years.length - 1]}`;
   const data = sjByOdjel(gj, ganttMin10);
   const gjGroups = {};
   data.forEach(e => { if (!gjGroups[e.gj]) gjGroups[e.gj] = []; gjGroups[e.gj].push(e); });
