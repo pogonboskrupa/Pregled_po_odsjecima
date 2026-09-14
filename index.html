@@ -661,14 +661,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 <div class="breadcrumb">Elaborat &rsaquo; <span>Drvna masa po odsjecima</span></div>
 
 <div class="tabs">
-  <div class="tab" onclick="switchTab('search')">Pretraga odsjeka</div>
+  <div class="tab active" onclick="switchTab('search')">Pretraga odsjeka</div>
   <div class="tab" onclick="switchTab('vrste')">Rangiranje po vrsti</div>
   <div class="tab" onclick="switchTab('zaliha')">Rangiranje po zalihi</div>
   <div class="tab" onclick="switchTab('sjekored')">Sjekored</div>
   <div class="tab" onclick="switchTab('prirast')">Zapreminski prirast</div>
   <div class="tab" onclick="switchTab('stabla')">Broj stabala</div>
   <div class="tab" onclick="switchTab('izvjestaj')">Izvještaj</div>
-  <div class="tab active" onclick="switchTab('pregled')">📊 Pregled</div>
+  <div class="tab" onclick="switchTab('pregled')">📊 Pregled</div>
 </div>
 
 <!-- Sjekored subtabs -->
@@ -682,14 +682,14 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 <div class="app-body">
 
 <!-- ===== PREGLED (DASHBOARD) ===== -->
-<div class="panel active" id="panel-pregled">
+<div class="panel" id="panel-pregled">
   <div style="flex:1;overflow-y:auto;min-height:0;padding:16px 20px 30px;">
     <div id="dash-content"></div>
   </div>
 </div>
 
 <!-- ===== SEARCH ===== -->
-<div class="panel" id="panel-search">
+<div class="panel active" id="panel-search">
   <div class="panel-inner">
     <div class="filter-card" id="fc-search">
       <div class="filter-card-title" onclick="toggleFilterCard('fc-search')">
