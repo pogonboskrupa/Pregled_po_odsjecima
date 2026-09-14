@@ -220,7 +220,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sj-card-real{background:#e8f0e8;border:1px solid #b8d4b8;border-left:3px solid #2c5f2e;}
 .sj-card-plan{background:#f0f5f0;border:1px dashed #7fb87f;border-left:3px solid #7fb87f;}
 .sj-card-custom{background:#e8eef8;border:1px solid #a8b8d8;border-left:3px solid #1a4a8b;}
-.sj-card-real:hover,.sj-card-plan:hover{cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);transform:translateY(-1px);}
+.sj-card-real:hover,.sj-card-plan:hover,.sj-card-custom:hover{cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,0.1);transform:translateY(-1px);}
 .sj-card-odjel{font-size:0.87rem;font-weight:700;color:var(--text);}
 .sj-card-sub{font-size:0.64rem;color:var(--text-muted);margin-top:2px;}
 .sj-card-pov{font-size:0.67rem;color:var(--text-dim);margin-top:2px;font-weight:600;}
@@ -257,6 +257,8 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .gantt-table tbody tr:nth-child(even) td.td-gj{background:#faf9f7;}
 .gantt-table tbody tr:nth-child(even){background:#faf9f7;}
 .gantt-table tbody tr:hover td{background:var(--accent-pale)!important;}
+.gantt-table td.td-clickable{cursor:pointer;}
+.gantt-table td.td-clickable:hover{text-decoration:underline;}
 .gantt-cell{width:26px;height:20px;border-radius:2px;margin:0 auto;position:relative;}
 .gc-real{background:#2c5f2e;}
 .gc-plan{background:#a8d4a8;border:1px dashed #4a8f4a;}
@@ -2115,7 +2117,7 @@ function renderSjDoznaka(){
   const tbody=document.getElementById('doznaka-body');
   tbody.innerHTML=data.map(o=>{
     const col=m3c(o.proj_m3ha);
-    return `<tr>
+    return `<tr class="clickable" onclick="sjDetailOpen('${o.gj}','${o.odjel}')">
       <td class="gj">${o.gj}</td><td class="code dim">${o.odjel}</td><td class="code">${o.odsjek}</td>
       <td class="num dim">${o.povrsina.toFixed(2)}</td><td class="num dim">${o.gazd_klasa||'—'}</td>
       <td class="num dim">${o.ukupno_m3ha.toFixed(2)}</td>
@@ -2403,8 +2405,8 @@ function renderSjekored() {
       const realIdx = sjCustom[year].indexOf(e);
       const prelazniDot = e.prelazni ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
       const prelazniNote = e.prelazni && e.prelazniOther ? ' · ↔ prelazni sa ' + e.prelazniOther + '.' : '';
-      return `<div class="sj-card sj-card-custom">
-      <span class="sj-card-del" onclick="sjRemove(${year},${realIdx})">✕</span>
+      return `<div class="sj-card sj-card-custom" onclick="sjDetailOpen('${sjEscAttr(e.gj)}','${sjEscAttr(e.odjel)}')">
+      <span class="sj-card-del" onclick="event.stopPropagation();sjRemove(${year},${realIdx})">✕</span>
       <div class="sj-card-odjel">Odjel ${sjEscText(e.odjel)}${prelazniDot}</div>
       <div class="sj-card-sub">${sjEscText(e.gj || '—')}</div>
       <div class="sj-card-pov">${e.pov ? e.pov + ' ha' : ''}${e.napomena ? ' · ' + sjEscText(e.napomena) : ''}${prelazniNote}</div>
@@ -2488,7 +2490,8 @@ function renderGantt() {
     html += `<tr class="gj-header-row"><td colspan="${3 + years.length}">${gjn}</td></tr>`;
     entries.sort((a, b) => String(a.odjel).localeCompare(String(b.odjel), undefined, { numeric: true }));
     entries.forEach(e => {
-      html += `<tr><td class="td-odjel">${e.odjel}</td><td class="td-gj">${e.gj}</td><td class="td-pov">${e.pov_total ? e.pov_total.toFixed(1) : '—'}</td>`;
+      const odjClick = ` onclick="sjDetailOpen('${e.gj}','${e.odjel}')" title="Klikni za detalje odjela"`;
+      html += `<tr><td class="td-odjel td-clickable"${odjClick}>${e.odjel}</td><td class="td-gj td-clickable"${odjClick}>${e.gj}</td><td class="td-pov">${e.pov_total ? e.pov_total.toFixed(1) : '—'}</td>`;
       years.forEach(y => {
         const isReal = e.years_real.includes(y);
         const isPlan = e.years_plan.includes(y);
