@@ -190,6 +190,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sj-year-btn.active{background:var(--accent);color:#fff;border-left-color:transparent;}
 .sj-year-plan{border-left-color:#7fb87f;}
 .sj-year-custom{border-left-color:#5a86c0;}
+.sj-decade-end{border-bottom:3px solid #c9a63c;}
 .sj-year-badge{font-size:0.63rem;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(0,0,0,0.08);}
 .sj-year-btn.active .sj-year-badge{background:rgba(255,255,255,0.25);color:#fff;}
 .sj-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-height:0;}
@@ -356,6 +357,7 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   .sj-sidebar{width:100%;height:auto;border-right:none;border-bottom:2px solid var(--border);}
   .sj-years{display:flex;overflow-x:auto;flex-direction:row;}
   .sj-year-btn{border-bottom:none;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0;}
+  .sj-decade-end{border-bottom:none;border-right:3px solid #c9a63c;}
   .sj-main{overflow:visible;}
   .gantt-wrap{padding:9px 11px;}
   /* prirast table: hide DC columns and gazd.klasa on mobile */
@@ -2133,6 +2135,10 @@ const SJ_YEARS_PLAN=[2017,2018,2019,2020,2021,2026];
 // praćenje sječe, jer se odjeli u praksi ne sijeku strogo na 10 godina.
 const SJ_YEARS_CUSTOM=[2022,2023,2024,2025,2027,2028,2029,2030];
 const SJ_ALL_YEARS=[...SJ_YEARS_REAL,...SJ_YEARS_PLAN,...SJ_YEARS_CUSTOM];
+// Ciklus sječe je ~10 godina počevši od 2012 (nije strogo pravilo, ali
+// služi kao orijentir) — vizuelno odvaja decenije: granica poslije 2022,
+// 2032, 2042... (kraj je uvijek desetu godinu od početka prethodne).
+function sjIsDecadeEnd(y){ return y>SJ_YEARS_REAL[0] && (y-SJ_YEARS_REAL[0])%10===0; }
 // ── PERZISTENCIJA (localStorage) ──
 const SJ_STORAGE_KEY = 'elaborat_sjekored_custom_v1';
 function sjLoad() {
@@ -2333,7 +2339,8 @@ function sjInit() {
   // razlikuje ostvareno/planirano/dodatne godine, isti kod boja kao
   // zaglavlje u Vremenskoj crti.
   [...SJ_ALL_YEARS].sort((a, b) => a - b).forEach(y => {
-    const cls = SJ_YEARS_CUSTOM.includes(y) ? 'sj-year-custom' : SJ_YEARS_PLAN.includes(y) ? 'sj-year-plan' : 'sj-year-real';
+    let cls = SJ_YEARS_CUSTOM.includes(y) ? 'sj-year-custom' : SJ_YEARS_PLAN.includes(y) ? 'sj-year-plan' : 'sj-year-real';
+    if (sjIsDecadeEnd(y)) cls += ' sj-decade-end';
     mkBtn(y, cls);
   });
 }
@@ -2472,7 +2479,8 @@ function renderGantt() {
   html += '<th class="th-odjel">Odjel</th><th class="th-gj">GJ</th><th class="th-pov">ha</th>';
   years.forEach(y => {
     const isC = SJ_YEARS_CUSTOM.includes(y), isP = SJ_YEARS_PLAN.includes(y);
-    html += `<th style="${isC ? 'background:#1a4a8b;' : isP ? 'background:#5a8f5a;' : ''}">${y}</th>`;
+    const decadeEnd = sjIsDecadeEnd(y) ? 'border-right:3px solid #c9a63c;' : '';
+    html += `<th style="${isC ? 'background:#1a4a8b;' : isP ? 'background:#5a8f5a;' : ''}${decadeEnd}">${y}</th>`;
   });
   html += '</tr></thead><tbody>';
 
@@ -2491,7 +2499,8 @@ function renderGantt() {
         else if (isCust) { cls = 'gc-custom'; title = 'Dodano ' + y + ' (klikni za uklanjanje)'; }
         const clickable = (cls === 'gc-empty' || cls === 'gc-custom');
         const onclick = clickable ? ` onclick="ganttCellClick('${e.gj}','${e.odjel}',${y},${e.pov_total || 'null'})"` : '';
-        html += `<td><div class="gantt-cell ${cls}${clickable ? ' gc-clickable' : ''}" title="${title}"${onclick}></div></td>`;
+        const decadeEnd = sjIsDecadeEnd(y) ? ' style="border-right:3px solid #c9a63c;"' : '';
+        html += `<td${decadeEnd}><div class="gantt-cell ${cls}${clickable ? ' gc-clickable' : ''}" title="${title}"${onclick}></div></td>`;
       });
       html += '</tr>';
     });
