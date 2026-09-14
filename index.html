@@ -185,13 +185,13 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sj-sidebar{width:200px;flex-shrink:0;border-right:2px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
 .sj-sidebar-title{padding:10px 12px 7px;font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);font-weight:700;border-bottom:1px solid var(--border);}
 .sj-years{flex:1;overflow-y:auto;}
-.sj-year-btn{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--text-dim);border-bottom:1px solid var(--border);transition:all 0.1s;user-select:none;}
+.sj-year-btn{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;cursor:pointer;font-size:0.8rem;font-weight:600;color:var(--text-dim);border-bottom:1px solid var(--border);border-left:4px solid transparent;transition:all 0.1s;user-select:none;}
 .sj-year-btn:hover{background:var(--accent-pale);color:var(--accent);}
-.sj-year-btn.active{background:var(--accent);color:#fff;}
-.sj-year-btn.future{color:var(--accent);font-style:italic;}
+.sj-year-btn.active{background:var(--accent);color:#fff;border-left-color:transparent;}
+.sj-year-plan{border-left-color:#7fb87f;}
+.sj-year-custom{border-left-color:#5a86c0;}
 .sj-year-badge{font-size:0.63rem;font-weight:700;padding:1px 6px;border-radius:10px;background:rgba(0,0,0,0.08);}
 .sj-year-btn.active .sj-year-badge{background:rgba(255,255,255,0.25);color:#fff;}
-.sj-sep{padding:4px 12px;font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);background:var(--surface2);border-bottom:1px solid var(--border);font-weight:700;}
 .sj-main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);min-height:0;}
 .sj-topbar{padding:10px 18px 8px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .sj-year-title{font-family:var(--serif);font-size:1rem;font-weight:600;color:var(--accent);}
@@ -356,7 +356,6 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
   .sj-sidebar{width:100%;height:auto;border-right:none;border-bottom:2px solid var(--border);}
   .sj-years{display:flex;overflow-x:auto;flex-direction:row;}
   .sj-year-btn{border-bottom:none;border-right:1px solid var(--border);white-space:nowrap;flex-shrink:0;}
-  .sj-sep{display:none;}
   .sj-main{overflow:visible;}
   .gantt-wrap{padding:9px 11px;}
   /* prirast table: hide DC columns and gazd.klasa on mobile */
@@ -2323,7 +2322,6 @@ function sjCountYear(year) {
 
 function sjInit() {
   const c = document.getElementById('sj-year-list'); c.innerHTML = '';
-  function mkSep(l) { const d = document.createElement('div'); d.className = 'sj-sep'; d.textContent = l; c.appendChild(d); }
   function mkBtn(y, cls) {
     const d = document.createElement('div');
     d.className = 'sj-year-btn ' + cls + (sjActiveYear === y ? ' active' : '');
@@ -2331,9 +2329,13 @@ function sjInit() {
     d.innerHTML = y + '<span class="sj-year-badge">' + sjCountYear(y) + '</span>';
     d.onclick = () => sjSelectYear(y); c.appendChild(d);
   }
-  mkSep('Ostvareno'); SJ_YEARS_REAL.forEach(y => mkBtn(y, ''));
-  mkSep('Planirano'); SJ_YEARS_PLAN.forEach(y => mkBtn(y, ''));
-  mkSep('Dodatne godine (bez plana)'); SJ_YEARS_CUSTOM.forEach(y => mkBtn(y, 'future'));
+  // Čist hronološki spisak (bez sekcijskih naslova) — boja lijeve ivice
+  // razlikuje ostvareno/planirano/dodatne godine, isti kod boja kao
+  // zaglavlje u Vremenskoj crti.
+  [...SJ_ALL_YEARS].sort((a, b) => a - b).forEach(y => {
+    const cls = SJ_YEARS_CUSTOM.includes(y) ? 'sj-year-custom' : SJ_YEARS_PLAN.includes(y) ? 'sj-year-plan' : 'sj-year-real';
+    mkBtn(y, cls);
+  });
 }
 
 function sjSelectYear(year) {
