@@ -661,7 +661,6 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 <div class="breadcrumb">Elaborat &rsaquo; <span>Drvna masa po odsjecima</span></div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('pregled')">📊 Pregled</div>
   <div class="tab" onclick="switchTab('search')">Pretraga odsjeka</div>
   <div class="tab" onclick="switchTab('vrste')">Rangiranje po vrsti</div>
   <div class="tab" onclick="switchTab('zaliha')">Rangiranje po zalihi</div>
@@ -669,6 +668,7 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
   <div class="tab" onclick="switchTab('prirast')">Zapreminski prirast</div>
   <div class="tab" onclick="switchTab('stabla')">Broj stabala</div>
   <div class="tab" onclick="switchTab('izvjestaj')">Izvještaj</div>
+  <div class="tab active" onclick="switchTab('pregled')">📊 Pregled</div>
 </div>
 
 <!-- Sjekored subtabs -->
@@ -1595,7 +1595,7 @@ document.getElementById('hdr-m3').textContent=Math.round(totalM3).toLocaleString
 document.getElementById('hdr-ha').textContent=Math.round(totalHa).toLocaleString('bs')+' ha';
 
 // ── TABS ──
-const TAB_NAMES=['pregled','search','vrste','zaliha','sjekored','prirast','stabla','izvjestaj'];
+const TAB_NAMES=['search','vrste','zaliha','sjekored','prirast','stabla','izvjestaj','pregled'];
 function switchTab(n){
   TAB_NAMES.forEach((t,i)=>{
     document.querySelectorAll('.tab')[i].classList.toggle('active',t===n);
