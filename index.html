@@ -2142,19 +2142,62 @@ const SJ_ALL_YEARS=[...SJ_YEARS_REAL,...SJ_YEARS_PLAN,...SJ_YEARS_CUSTOM];
 // služi kao orijentir) — vizuelno odvaja decenije: granica poslije 2022,
 // 2032, 2042... (kraj je uvijek desetu godinu od početka prethodne).
 function sjIsDecadeEnd(y){ return y>SJ_YEARS_REAL[0] && (y-SJ_YEARS_REAL[0])%10===0; }
-// ── PERZISTENCIJA (localStorage) ──
+// ── PERZISTENCIJA (Firestore — zajedničko za sve korisnike; localStorage kao offline keš/fallback) ──
 const SJ_STORAGE_KEY = 'elaborat_sjekored_custom_v1';
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC2vO6URXakJAr3PBk2sfi-quShUUdnmyo",
+  authDomain: "elaborat-256d3.firebaseapp.com",
+  databaseURL: "https://elaborat-256d3-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "elaborat-256d3",
+  storageBucket: "elaborat-256d3.firebasestorage.app",
+  messagingSenderId: "871340682406",
+  appId: "1:871340682406:web:60ab6f38c41796c41ed867",
+  measurementId: "G-5NLJFSKKC0"
+};
+let sjDocRef = null, sjFirestoreConnected = false;
+function sjFirestoreInit() {
+  try {
+    if (typeof firebase === 'undefined') throw new Error('Firebase SDK nije učitan.');
+    firebase.initializeApp(FIREBASE_CONFIG);
+    const db = firebase.firestore();
+    db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+    sjDocRef = db.collection('elaborat').doc('sjekored_custom');
+    sjDocRef.onSnapshot(snap => {
+      sjFirestoreConnected = true;
+      sjCustom = snap.exists ? (snap.data().data || {}) : {};
+      sjSaveLocal();
+      updateSjStorageInfo();
+      sjReRenderActive();
+    }, err => {
+      sjFirestoreConnected = false;
+      updateSjStorageInfo();
+      console.warn('Firestore sinhronizacija nije uspjela, radim lokalno.', err);
+    });
+  } catch (e) {
+    console.warn('Firestore init nije uspio, radim lokalno.', e);
+  }
+}
+function sjReRenderActive() {
+  if (sjActiveSub === 'godinama') renderSjekored();
+  else if (sjActiveSub === 'gantt') renderGantt();
+  else if (sjActiveSub === 'doznaka') renderSjDoznaka();
+  else if (sjActiveSub === 'spisak') renderSjSpisak();
+}
 function sjLoad() {
   try {
     const raw = localStorage.getItem(SJ_STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch (e) { return {}; }
 }
+function sjSaveLocal() {
+  try { localStorage.setItem(SJ_STORAGE_KEY, JSON.stringify(sjCustom)); } catch (e) {}
+}
 function sjSave() {
-  try {
-    localStorage.setItem(SJ_STORAGE_KEY, JSON.stringify(sjCustom));
-    updateSjStorageInfo();
-  } catch (e) { showToast('Greška pri spašavanju u browser memoriju.'); }
+  sjSaveLocal();
+  updateSjStorageInfo();
+  if (!sjDocRef) return;
+  sjDocRef.set({ data: sjCustom, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+    .catch(e => showToast('Greška pri dijeljenju sa svima: ' + e.message));
 }
 function sjCountCustom() {
   return Object.values(sjCustom).reduce((s, arr) => s + (arr ? arr.length : 0), 0);
@@ -2163,7 +2206,10 @@ function updateSjStorageInfo() {
   const el = document.getElementById('sj-storage-info');
   if (el) {
     const n = sjCountCustom();
-    el.innerHTML = n ? `<strong>${n}</strong> ručnih unosa spašeno u browser memoriji` : 'Nema spašenih unosa';
+    const status = sjFirestoreConnected
+      ? '<span style="color:var(--accent)">● vidljivo svima</span>'
+      : '<span style="color:#8b5e0a">● samo lokalno (offline)</span>';
+    el.innerHTML = (n ? `<strong>${n}</strong> ručnih unosa` : 'Nema ručnih unosa') + ' · ' + status;
   }
 }
 
@@ -2799,6 +2845,14 @@ function applyUpdate() {
 }
 
 if ('serviceWorker' in navigator) {
+  // Bitno: SW kontroliše stranicu prvi put (self.clients.claim() u sw.js
+  // se poziva i pri PRVOJ ikad instalaciji, ne samo pri ažuriranju), pa
+  // 'controllerchange' zna opaliti i na potpuno prvoj posjeti stranici —
+  // bez ove provjere bi aplikacija sama sebe neočekivano reloadala odmah
+  // nakon prvog učitavanja (gubi se npr. već unesena pretraga).
+  // Auto-reload ima smisla samo kad se mijenja VEĆ POSTOJEĆI kontroler
+  // (stvarno ažuriranje), ne pri prvoj aktivaciji.
+  const hadControllerAtLoad = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('./sw.js').then(reg => {
     if (reg.waiting) {
       swWaiting = reg.waiting;
@@ -2818,7 +2872,7 @@ if ('serviceWorker' in navigator) {
 
   let reloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloaded) return;
+    if (reloaded || !hadControllerAtLoad) return;
     reloaded = true;
     location.reload();
   });
@@ -3907,6 +3961,27 @@ function printIzvjestaj(){
 
 // Inicijalni render dashboarda (STABALA i PRIRAST su sada dostupni)
 renderPregled();
+
+// Firebase (Firestore) — zajednička baza za ručne Sjekored unose, vidljivo
+// svim korisnicima. Učitava se dinamički (ne kao obično <script src>) da
+// NIKAD ne blokira parsiranje/izvršavanje ostatka aplikacije — spor ili
+// blokiran pristup ovom CDN-u (npr. firewall, loša mreža) ne smije usporiti
+// ni zaustaviti učitavanje aplikacije. Bez uspješnog povezivanja Sjekored i
+// dalje radi normalno, samo lokalno (localStorage), bez dijeljenja sa drugima.
+function sjLoadFirebaseSdk() {
+  const s1 = document.createElement('script');
+  s1.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
+  s1.onload = () => {
+    const s2 = document.createElement('script');
+    s2.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js';
+    s2.onload = () => sjFirestoreInit();
+    s2.onerror = () => console.warn('Firestore SDK (firestore dio) nije uspio da se učita — Sjekored radi lokalno.');
+    document.head.appendChild(s2);
+  };
+  s1.onerror = () => console.warn('Firestore SDK (app dio) nije uspio da se učita — Sjekored radi lokalno.');
+  document.head.appendChild(s1);
+}
+sjLoadFirebaseSdk();
 </script>
 </body>
 </html>
