@@ -2249,19 +2249,24 @@ function sjByOdjel(gjFilter, min10Filter) {
   const map = {};
   SJ_DATA.forEach(e => {
     if (gjFilter && e.gj !== gjFilter) return;
-    if (min10Filter && (e.pov || 0) < 10) return;
     const key = e.gj + '|' + e.odjel;
-    if (!map[key]) map[key] = { odjel: e.odjel, gj: e.gj, years_real: new Set(), years_plan: new Set(), pov_total: 0, gk: e.gk };
+    if (!map[key]) map[key] = { odjel: e.odjel, gj: e.gj, years_real: new Set(), years_plan: new Set(), gk: e.gk };
     e.years_real.forEach(y => map[key].years_real.add(y));
     e.years_plan.forEach(y => map[key].years_plan.add(y));
-    map[key].pov_total += (e.pov || 0);
   });
-  return Object.values(map).map(o => ({
-    ...o,
-    years_real: [...o.years_real].sort(),
-    years_plan: [...o.years_plan].sort(),
-    pov_total: Math.round(o.pov_total * 10) / 10
-  }));
+  // Površina se uzima direktno iz elaborata (ODSJECI), ne zbirom SJ_DATA
+  // 'pov' polja — isti odjel se ponekad javlja u SJ_DATA u više zapisa
+  // (npr. i ostvarena sječa i kasniji plan istog odjela nakon ~10 god.
+  // ciklusa), pa bi sabiranje udvostručilo površinu istog fizičkog odjela.
+  return Object.values(map).map(o => {
+    const pov_total = Math.round(sjFindOdsjeci(o.gj, o.odjel).reduce((s, x) => s + x.povrsina, 0) * 10) / 10;
+    return {
+      ...o,
+      years_real: [...o.years_real].sort(),
+      years_plan: [...o.years_plan].sort(),
+      pov_total
+    };
+  }).filter(o => !min10Filter || o.pov_total >= 10);
 }
 
 // Spisak svih odjela sa svim godinama sječe koje su ikad upisane za taj
@@ -2276,7 +2281,13 @@ function sjAllOdjeliList(gjFilter, odjelFilter) {
     if (!map[key]) map[key] = { gj: e.gj, odjel: e.odjel, real: new Set(), plan: new Set(), custom: new Set(), pov: 0 };
     e.years_real.forEach(y => map[key].real.add(y));
     e.years_plan.forEach(y => map[key].plan.add(y));
-    map[key].pov += (e.pov || 0);
+  });
+  // Površina iz elaborata (ODSJECI), ne zbirom SJ_DATA 'pov' polja — isti
+  // razlog kao u sjByOdjel(): isti odjel se ponekad javlja u više SJ_DATA
+  // zapisa (ostvareno + kasniji plan istog odjela), pa bi sabiranje
+  // udvostručilo površinu istog fizičkog odjela.
+  Object.values(map).forEach(o => {
+    o.pov = Math.round(sjFindOdsjeci(o.gj, o.odjel).reduce((s, x) => s + x.povrsina, 0) * 10) / 10;
   });
   Object.entries(sjCustom).forEach(([year, arr]) => {
     (arr || []).forEach(e => {
