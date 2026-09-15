@@ -2117,8 +2117,9 @@ function renderSjDoznaka(){
   const tbody=document.getElementById('doznaka-body');
   tbody.innerHTML=data.map(o=>{
     const col=m3c(o.proj_m3ha);
+    const prelazniDot = sjIsCustomPrelazni(o.gj, o.odjel) ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
     return `<tr class="clickable" onclick="sjDetailOpen('${o.gj}','${o.odjel}')">
-      <td class="gj">${o.gj}</td><td class="code dim">${o.odjel}</td><td class="code">${o.odsjek}</td>
+      <td class="gj">${o.gj}</td><td class="code dim">${o.odjel}${prelazniDot}</td><td class="code">${o.odsjek}</td>
       <td class="num dim">${o.povrsina.toFixed(2)}</td><td class="num dim">${o.gazd_klasa||'—'}</td>
       <td class="num dim">${o.ukupno_m3ha.toFixed(2)}</td>
       <td class="num dim">${o.prirast_rate>0?o.prirast_rate.toFixed(2):'—'}</td>
@@ -2321,9 +2322,10 @@ function renderSjSpisak() {
       ...o.custom.map(y => ({ y, cls: 'sj-year-chip-custom' })),
     ].sort((a, b) => a.y - b.y);
     const chips = all.map(c => `<span class="sj-year-chip ${c.cls}">${c.y}</span>`).join('');
+    const prelazniDot = sjIsCustomPrelazni(o.gj, o.odjel) ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
     return `<tr class="clickable" onclick="sjDetailOpen('${sjEscAttr(o.gj)}','${sjEscAttr(o.odjel)}')">
       <td class="gj">${sjEscText(o.gj)}</td>
-      <td class="code">${sjEscText(o.odjel)}</td>
+      <td class="code">${sjEscText(o.odjel)}${prelazniDot}</td>
       <td class="num dim">${o.pov ? o.pov.toFixed(1) : '—'}</td>
       <td>${chips || '<span style="color:var(--text-muted);font-style:italic">Nema upisanih godina.</span>'}</td>
     </tr>`;
@@ -2512,7 +2514,8 @@ function renderGantt() {
     entries.sort((a, b) => String(a.odjel).localeCompare(String(b.odjel), undefined, { numeric: true }));
     entries.forEach(e => {
       const odjClick = ` onclick="sjDetailOpen('${e.gj}','${e.odjel}')" title="Klikni za detalje odjela"`;
-      html += `<tr><td class="td-odjel td-clickable"${odjClick}>${e.odjel}</td><td class="td-gj td-clickable"${odjClick}>${e.gj}</td><td class="td-pov">${e.pov_total ? e.pov_total.toFixed(1) : '—'}</td>`;
+      const prelazniDot = sjIsCustomPrelazni(e.gj, e.odjel) ? ' <span style="color:#b8860b;font-size:0.6rem;font-weight:700" title="Prelazni odjel">↔P</span>' : '';
+      html += `<tr><td class="td-odjel td-clickable"${odjClick}>${e.odjel}${prelazniDot}</td><td class="td-gj td-clickable"${odjClick}>${e.gj}</td><td class="td-pov">${e.pov_total ? e.pov_total.toFixed(1) : '—'}</td>`;
       years.forEach(y => {
         const isReal = e.years_real.includes(y);
         const isPlan = e.years_plan.includes(y);
@@ -2536,15 +2539,33 @@ function renderGantt() {
 // Klik na praznu ćeliju dodaje odjel kao ručni unos za tu godinu; klik na
 // već ručno dodanu ćeliju je uklanja (toggle). Ostvarene/planirane ćelije
 // (iz elaborata) nisu klikabilne — ne mijenjaju se ovako.
+// Ako je isti odjel (u istoj GJ) već dodan u SUSJEDNOJ godini (year±1),
+// obje ćelije se automatski označavaju kao prelazni (P) — na taj način
+// klik na dvije uzastopne godine u Vremenskoj crti ima isti efekat kao
+// checkbox "↔ Prelazni" u formi za ručno dodavanje.
 function ganttCellClick(gj, odjel, year, pov) {
   if (!sjCustom[year]) sjCustom[year] = [];
   const idx = sjCustom[year].findIndex(c => c.odjel === odjel && c.gj === gj);
   if (idx >= 0) {
+    const removed = sjCustom[year][idx];
     sjCustom[year].splice(idx, 1);
+    // Ako je uklonjeni unos bio prelazni, druga strana para više nije
+    // prelazna (par je razbijen).
+    if (removed.prelazni && removed.prelazniOther != null) {
+      const other = (sjCustom[removed.prelazniOther] || []).find(c => c.odjel === odjel && c.gj === gj);
+      if (other) { other.prelazni = false; other.prelazniOther = null; }
+    }
     showToast('Odjel ' + odjel + ' uklonjen za ' + year + '.');
   } else {
-    sjCustom[year].push({ odjel, odsjek: 0, gj, pov: pov || null, napomena: '', prelazni: false, prelazniOther: null });
-    showToast('Odjel ' + odjel + ' dodan za ' + year + '.');
+    const adjYear = [year + 1, year - 1].find(y => SJ_ALL_YEARS.includes(y) && (sjCustom[y] || []).some(c => c.odjel === odjel && c.gj === gj));
+    sjCustom[year].push({ odjel, odsjek: 0, gj, pov: pov || null, napomena: '', prelazni: !!adjYear, prelazniOther: adjYear || null });
+    if (adjYear) {
+      const other = sjCustom[adjYear].find(c => c.odjel === odjel && c.gj === gj);
+      other.prelazni = true; other.prelazniOther = year;
+      showToast('Odjel ' + odjel + ' dodan za ' + year + ' — označen kao prelazni sa ' + adjYear + '.');
+    } else {
+      showToast('Odjel ' + odjel + ' dodan za ' + year + '.');
+    }
   }
   sjSave();
   renderGantt();
