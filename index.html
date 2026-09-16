@@ -264,10 +264,13 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .gc-plan{background:#a8d4a8;border:1px dashed #4a8f4a;}
 .gc-custom{background:#1a4a8b;}
 .gc-empty{background:transparent;}
+.gc-removed{background:repeating-linear-gradient(45deg,#e8d5d5,#e8d5d5 3px,#f5e8e8 3px,#f5e8e8 6px);border:1px dashed #b06060;}
 .gc-clickable{cursor:pointer;transition:all 0.1s;}
 .gc-clickable.gc-empty{border:1px dashed transparent;}
 .gc-clickable.gc-empty:hover{background:#dce8dc;border-color:#7fa87f;}
 .gc-clickable.gc-custom:hover{background:#c0392b;}
+.gc-clickable.gc-real:hover,.gc-clickable.gc-plan:hover{background:#c0392b;border-color:#c0392b;}
+.gc-clickable.gc-removed:hover{background:#dce8dc;border-color:#7fa87f;}
 .gantt-table .gj-header-row td{background:#e8f0e8;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--accent);padding:4px 10px;border-bottom:1px solid var(--border);}
 
 /* TOAST */
@@ -2139,9 +2142,9 @@ const SJ_YEARS_PLAN=[2017,2018,2019,2020,2021,2026];
 const SJ_YEARS_CUSTOM=[2022,2023,2024,2025,2027,2028,2029,2030];
 const SJ_ALL_YEARS=[...SJ_YEARS_REAL,...SJ_YEARS_PLAN,...SJ_YEARS_CUSTOM];
 // Ciklus sječe je ~10 godina počevši od 2012 (nije strogo pravilo, ali
-// služi kao orijentir) — vizuelno odvaja decenije: granica poslije 2022,
-// 2032, 2042... (kraj je uvijek desetu godinu od početka prethodne).
-function sjIsDecadeEnd(y){ return y>SJ_YEARS_REAL[0] && (y-SJ_YEARS_REAL[0])%10===0; }
+// služi kao orijentir) — vizuelno odvaja decenije: granica poslije 2021,
+// 2031, 2041... (deceniju čini prvih 10 godina od početka: 2012-2021).
+function sjIsDecadeEnd(y){ return (y-SJ_YEARS_REAL[0])%10===9; }
 // ── PERZISTENCIJA (Firestore — zajedničko za sve korisnike; localStorage kao offline keš/fallback) ──
 const SJ_STORAGE_KEY = 'elaborat_sjekored_custom_v1';
 const FIREBASE_CONFIG = {
@@ -2164,7 +2167,9 @@ function sjFirestoreInit() {
     sjDocRef = db.collection('elaborat').doc('sjekored_custom');
     sjDocRef.onSnapshot(snap => {
       sjFirestoreConnected = true;
-      sjCustom = snap.exists ? (snap.data().data || {}) : {};
+      const d = snap.exists ? snap.data() : {};
+      sjCustom = d.data || {};
+      sjOverrides = d.overrides || {};
       sjSaveLocal();
       updateSjStorageInfo();
       sjReRenderActive();
@@ -2186,21 +2191,49 @@ function sjReRenderActive() {
 function sjLoad() {
   try {
     const raw = localStorage.getItem(SJ_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch (e) { return {}; }
+    if (!raw) return { custom: {}, overrides: {} };
+    const parsed = JSON.parse(raw);
+    // Stariji format je čuvao samo sjCustom direktno (bez overrides) — i dalje
+    // se ispravno učitava, overrides kreće prazan.
+    if (parsed && (parsed.custom || parsed.overrides)) {
+      return { custom: parsed.custom || {}, overrides: parsed.overrides || {} };
+    }
+    return { custom: parsed || {}, overrides: {} };
+  } catch (e) { return { custom: {}, overrides: {} }; }
 }
 function sjSaveLocal() {
-  try { localStorage.setItem(SJ_STORAGE_KEY, JSON.stringify(sjCustom)); } catch (e) {}
+  try { localStorage.setItem(SJ_STORAGE_KEY, JSON.stringify({ custom: sjCustom, overrides: sjOverrides })); } catch (e) {}
 }
 function sjSave() {
   sjSaveLocal();
   updateSjStorageInfo();
   if (!sjDocRef) return;
-  sjDocRef.set({ data: sjCustom, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+  sjDocRef.set({ data: sjCustom, overrides: sjOverrides, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
     .catch(e => showToast('Greška pri dijeljenju sa svima: ' + e.message));
 }
 function sjCountCustom() {
   return Object.values(sjCustom).reduce((s, arr) => s + (arr ? arr.length : 0), 0);
+}
+// ── IZMJENE UGRAĐENIH (elaborat) GODINA SJEČE ──
+// Ostvarene/planirane godine iz elaborata (SJ_DATA) se ne mijenjaju u samom
+// fajlu — umjesto toga se bilježi "override" (uklonjeno) po (GJ, odjel,
+// godina, tip). Sve funkcije koje čitaju years_real/years_plan iz SJ_DATA
+// (sjByOdjel, sjAllOdjeliList) primjenjuju ove override-e prije vraćanja
+// podataka, pa se izmjena automatski odražava svugdje: Vremenska crta,
+// Po godinama (kartice, brojevi u sidebaru), Spisak odjela.
+function sjOverrideKey(gj, odjel, year, type) { return gj + '|' + odjel + '|' + year + '|' + type; }
+function sjIsOverridden(gj, odjel, year, type) { return !!sjOverrides[sjOverrideKey(gj, odjel, year, type)]; }
+function sjToggleHardcodedYear(gj, odjel, year, type) {
+  const key = sjOverrideKey(gj, odjel, year, type);
+  if (sjOverrides[key]) {
+    delete sjOverrides[key];
+    showToast('Odjel ' + odjel + ' vraćen za ' + year + '. (kao u elaboratu)');
+  } else {
+    sjOverrides[key] = true;
+    showToast('Odjel ' + odjel + ' uklonjen za ' + year + '. (izmjena elaborata)');
+  }
+  sjSave();
+  sjReRenderActive();
 }
 function updateSjStorageInfo() {
   const el = document.getElementById('sj-storage-info');
@@ -2213,9 +2246,9 @@ function updateSjStorageInfo() {
   }
 }
 
-// Export sjCustom as JSON file
+// Export sjCustom (+ overrides) as JSON file
 function sjExportJSON() {
-  const data = { version: 1, exported: new Date().toISOString(), entries: sjCustom };
+  const data = { version: 2, exported: new Date().toISOString(), entries: sjCustom, overrides: sjOverrides };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -2234,17 +2267,20 @@ function sjImportJSON(input) {
     try {
       const data = JSON.parse(e.target.result);
       const entries = data.entries || data;
+      const importedOverrides = data.overrides || {};
       if (typeof entries !== 'object') throw new Error('Pogrešan format.');
       // Ask: replace or merge?
       const action = confirm('Da li želite ZAMIJENITI postojeće unose?\n\nOK = zamijeni sve\nCancel = spoji s postojećim');
       if (action) {
         sjCustom = entries;
+        sjOverrides = importedOverrides;
       } else {
         // Merge: za svaku godinu spoji nizove
         Object.entries(entries).forEach(([year, arr]) => {
           if (!sjCustom[year]) sjCustom[year] = [];
           sjCustom[year] = sjCustom[year].concat(arr);
         });
+        Object.assign(sjOverrides, importedOverrides);
       }
       sjSave();
       renderSjekored();
@@ -2257,16 +2293,18 @@ function sjImportJSON(input) {
   reader.readAsText(file);
 }
 
-// Clear all custom entries
+// Clear all custom entries and elaborat-year overrides
 function sjClearAll() {
-  if (!confirm('Obrisati SVE ručno dodane unose? Ova akcija se ne može poništiti.')) return;
+  if (!confirm('Obrisati SVE ručno dodane unose i izmjene godina iz elaborata? Ova akcija se ne može poništiti.')) return;
   sjCustom = {};
+  sjOverrides = {};
   sjSave();
   renderSjekored();
-  showToast('Svi ručni unosi obrisani.');
+  showToast('Svi ručni unosi i izmjene obrisani.');
 }
 
-let sjCustom = sjLoad(), sjActiveYear = null, sjActiveSub = 'godinama', ganttMin10 = false;
+const SJ_LOADED = sjLoad();
+let sjCustom = SJ_LOADED.custom, sjOverrides = SJ_LOADED.overrides, sjActiveYear = null, sjActiveSub = 'godinama', ganttMin10 = false;
 
 // Ručno dodani unosi (odjel, GJ, napomena) su slobodan tekst — mogu doći i
 // iz uvezenog JSON plana (Import plan), pa se moraju eskejpovati prije
@@ -2298,8 +2336,8 @@ function sjByOdjel(gjFilter, min10Filter) {
     if (gjFilter && e.gj !== gjFilter) return;
     const key = e.gj + '|' + e.odjel;
     if (!map[key]) map[key] = { odjel: e.odjel, gj: e.gj, years_real: new Set(), years_plan: new Set(), gk: e.gk };
-    e.years_real.forEach(y => map[key].years_real.add(y));
-    e.years_plan.forEach(y => map[key].years_plan.add(y));
+    e.years_real.forEach(y => { if (!sjIsOverridden(e.gj, e.odjel, y, 'real')) map[key].years_real.add(y); });
+    e.years_plan.forEach(y => { if (!sjIsOverridden(e.gj, e.odjel, y, 'plan')) map[key].years_plan.add(y); });
   });
   // Površina se uzima direktno iz elaborata (ODSJECI), ne zbirom SJ_DATA
   // 'pov' polja — isti odjel se ponekad javlja u SJ_DATA u više zapisa
@@ -2326,8 +2364,8 @@ function sjAllOdjeliList(gjFilter, odjelFilter) {
     if (odjelFilter && !String(e.odjel).toLowerCase().includes(odjelFilter)) return;
     const key = e.gj + '|' + e.odjel;
     if (!map[key]) map[key] = { gj: e.gj, odjel: e.odjel, real: new Set(), plan: new Set(), custom: new Set(), pov: 0 };
-    e.years_real.forEach(y => map[key].real.add(y));
-    e.years_plan.forEach(y => map[key].plan.add(y));
+    e.years_real.forEach(y => { if (!sjIsOverridden(e.gj, e.odjel, y, 'real')) map[key].real.add(y); });
+    e.years_plan.forEach(y => { if (!sjIsOverridden(e.gj, e.odjel, y, 'plan')) map[key].plan.add(y); });
   });
   // Površina iz elaborata (ODSJECI), ne zbirom SJ_DATA 'pov' polja — isti
   // razlog kao u sjByOdjel(): isti odjel se ponekad javlja u više SJ_DATA
@@ -2566,14 +2604,25 @@ function renderGantt() {
         const isReal = e.years_real.includes(y);
         const isPlan = e.years_plan.includes(y);
         const isCust = (sjCustom[y] || []).some(c => c.odjel === e.odjel && c.gj === e.gj);
-        let cls = 'gc-empty', title = 'Klikni da dodaš ' + y + '.';
-        if (isReal) { cls = 'gc-real'; title = 'Ostvareno ' + y; }
-        else if (isPlan) { cls = 'gc-plan'; title = 'Planirano ' + y; }
-        else if (isCust) { cls = 'gc-custom'; title = 'Dodano ' + y + ' (klikni za uklanjanje)'; }
-        const clickable = (cls === 'gc-empty' || cls === 'gc-custom');
-        const onclick = clickable ? ` onclick="ganttCellClick('${e.gj}','${e.odjel}',${y},${e.pov_total || 'null'})"` : '';
+        const removedType = sjIsOverridden(e.gj, e.odjel, y, 'real') ? 'real' : sjIsOverridden(e.gj, e.odjel, y, 'plan') ? 'plan' : null;
+        let cls = 'gc-empty', title = 'Klikni da dodaš ' + y + '.', onclick;
+        if (isReal) {
+          cls = 'gc-real'; title = 'Ostvareno ' + y + ' — klikni da ukloniš/izmijeniš (elaborat)';
+          onclick = ` onclick="sjToggleHardcodedYear('${e.gj}','${e.odjel}',${y},'real')"`;
+        } else if (isPlan) {
+          cls = 'gc-plan'; title = 'Planirano ' + y + ' — klikni da ukloniš/izmijeniš (elaborat)';
+          onclick = ` onclick="sjToggleHardcodedYear('${e.gj}','${e.odjel}',${y},'plan')"`;
+        } else if (isCust) {
+          cls = 'gc-custom'; title = 'Dodano ' + y + ' (klikni za uklanjanje)';
+          onclick = ` onclick="ganttCellClick('${e.gj}','${e.odjel}',${y},${e.pov_total || 'null'})"`;
+        } else if (removedType) {
+          cls = 'gc-removed'; title = 'Uklonjeno iz elaborata za ' + y + ' — klikni da vratiš';
+          onclick = ` onclick="sjToggleHardcodedYear('${e.gj}','${e.odjel}',${y},'${removedType}')"`;
+        } else {
+          onclick = ` onclick="ganttCellClick('${e.gj}','${e.odjel}',${y},${e.pov_total || 'null'})"`;
+        }
         const decadeEnd = sjIsDecadeEnd(y) ? ' style="border-right:3px solid #c9a63c;"' : '';
-        html += `<td${decadeEnd}><div class="gantt-cell ${cls}${clickable ? ' gc-clickable' : ''}" title="${title}"${onclick}></div></td>`;
+        html += `<td${decadeEnd}><div class="gantt-cell ${cls} gc-clickable" title="${title}"${onclick}></div></td>`;
       });
       html += '</tr>';
     });
