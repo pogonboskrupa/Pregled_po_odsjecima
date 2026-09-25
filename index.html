@@ -442,12 +442,14 @@ td.code{font-family:'Courier New',monospace;font-size:0.74rem;}
 .sjd-section-title:first-child{margin-top:0;}
 .sjd-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:3px;border:1px solid var(--border);}
 .sjd-table{width:100%;border-collapse:collapse;font-size:0.78rem;white-space:nowrap;}
-.sjd-table th{text-align:right;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);font-weight:700;padding:5px 10px 6px;border-bottom:2px solid var(--border);background:var(--surface2);}
+.sjd-table th{text-align:right;font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:#fff;font-weight:700;padding:6px 10px;background:#2c5f2e;border-right:1px solid rgba(255,255,255,0.18);position:static;cursor:default;}
+.sjd-table thead th:hover{background:#2c5f2e;}
+.sjd-table th:last-child{border-right:none;}
 .sjd-table th:first-child{text-align:center;}
 .sjd-table td{padding:5px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--text-dim);}
 .sjd-table td:first-child{text-align:center;font-weight:700;color:var(--text);font-size:0.82rem;}
 .sjd-table tbody tr:last-child td{border-bottom:none;}
-.sjd-table tr.sjd-total td{font-weight:700;color:var(--text);border-top:2px solid var(--border);background:var(--surface2);}
+.sjd-table tr.sjd-total td{font-weight:700;color:var(--text);border-top:2px solid var(--accent-mid);background:var(--accent-pale);}
 .sjd-dc-chart{display:flex;gap:5px;align-items:flex-end;height:56px;margin-top:4px;}
 .sjd-dc-bar-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;}
 .sjd-dc-bar{width:100%;border-radius:2px 2px 0 0;min-height:1px;}
@@ -514,11 +516,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,
 .izv-stat{font-size:0.78rem;color:var(--text-dim);}
 .izv-stat b{font-size:0.88rem;color:var(--text);font-weight:800;}
 .izv-tbl{width:100%;border-collapse:collapse;font-size:0.72rem;}
-.izv-tbl th{background:var(--surface);color:var(--text-muted);padding:4px 7px;border:1px solid var(--border);text-align:right;font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;}
+.izv-tbl th{background:#2c5f2e;color:#fff;padding:6px 7px;border:1px solid #2c5f2e;border-right-color:rgba(255,255,255,0.18);text-align:right;font-size:0.62rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;position:static;cursor:default;}
+.izv-tbl thead th:hover{background:#2c5f2e;}
 .izv-tbl td{padding:4px 7px;border:1px solid var(--border);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;}
 .izv-tbl th:first-child,.izv-tbl td:first-child{text-align:left;}
 .izv-tbl tbody tr:hover{background:rgba(255,255,255,0.03);}
-.izv-tbl tbody tr.izv-total{font-weight:800;border-top:2px solid var(--border);background:var(--surface);}
+.izv-tbl tbody tr.izv-total{font-weight:800;border-top:2px solid var(--accent-mid);background:var(--accent-pale);}
 /* ── DASHBOARD ── */
 .dash-section-title{font-family:var(--serif);font-size:1rem;font-weight:600;color:var(--accent);margin:22px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--accent-mid);display:flex;align-items:center;gap:8px;}
 .dash-section-title:first-child{margin-top:0;}
@@ -4041,9 +4044,9 @@ function printIzvjestaj(){
     .izv-stat b{font-size:10.5px;color:#111;}
     table{border-collapse:collapse;width:100%;font-size:9px;}
     th,td{border:1px solid #d0d0d0;padding:3px 5px;text-align:right;white-space:nowrap;}
-    th{background:#ebebeb;font-weight:700;font-size:8px;text-transform:uppercase;}
+    th{background:#2c5f2e;color:#fff;border-color:#2c5f2e;font-weight:700;font-size:8px;text-transform:uppercase;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     th:first-child,td:first-child{text-align:left;}
-    tr.izv-total{font-weight:800;border-top:2px solid #aaa;background:#f5f5f5;}
+    tr.izv-total{font-weight:800;border-top:2px solid #9bbf9b;background:#e8f0e8;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .no-zaliha{color:#888;font-style:italic;font-size:9px;}
     @page{margin:10mm 14mm;}
     @media print{.izv-card{break-inside:avoid;}}
